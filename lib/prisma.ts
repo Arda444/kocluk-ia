@@ -90,13 +90,6 @@ export async function ensureSchema() {
   await globalForPrisma.schemaReady;
 }
 
-export function dbErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/AUTH_SECRET|MissingSecret/i.test(message)) {
-    return "AUTH_SECRET Vercel’de yok. Settings → Environment Variables.";
-  }
-  if (/Unable to (open|require)|SQLITE|no such table|database|Turso|libsql|ECONN/i.test(message)) {
-    return "Canlı veritabanı bağlanamadı. TURSO_DATABASE_URL libsql://...turso.io olmalı (app.turso.tech panel linki değil), TURSO_AUTH_TOKEN dolu olsun, sonra Redeploy.";
-  }
-  return "Giriş/kayıt şu an başarısız. Vercel loguna bak: AUTH_SECRET, AUTH_URL (localhost olmasın), Turso.";
+export function dbErrorMessage(_error: unknown) {
+  return "Bağlantı kurulamadı. Çıkış yapıp tekrar dene; olmazsa biraz sonra yeniden kayıt ol.";
 }

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     });
     if (!conversation) {
       return Response.json(
-        { error: "Sohbet bulunamadı. Hesap sıfırlanmış olabilir — çıkış yapıp canlı siteden yeniden kayıt ol." },
+        { error: "Bu sohbet bulunamadı. Yeni bir sohbet başlat." },
         { status: 404 },
       );
     }
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       messages,
       stream: true,
       temperature: 0.55,
-      max_tokens: 1200,
+      max_tokens: 4096,
     });
   } catch (firstError) {
     try {
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
         messages,
         stream: true,
         temperature: 0.55,
-        max_tokens: 1200,
+        max_tokens: 4096,
       });
     } catch (secondError) {
       return Response.json({ error: groqErrorMessage(secondError ?? firstError) }, { status: 502 });
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
           }
         }
         if (full.trim()) {
-          const { clean, items } = extractPlanItems(full);
+          const { clean, items } = extractPlanItems(full, istanbulToday());
           if (items.length) {
             await prisma.studyTask.createMany({
               data: items.map((item) => ({

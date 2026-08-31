@@ -73,7 +73,7 @@ export function ChatWindow({
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Yanıt alınamadı.");
+        throw new Error(payload?.error ?? "Yanıt oluşturulamadı. Lütfen tekrar dene.");
       }
 
       const reader = response.body?.getReader();
@@ -242,7 +242,7 @@ export function ChatWindow({
           event.preventDefault();
           void sendText(input);
         }}
-        className="border-t border-white/10 bg-[#0c0c0e]/85 p-3 backdrop-blur md:px-8 md:py-4"
+        className="border-t border-white/10 bg-[#0c0c0e]/85 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur md:px-8 md:py-4"
       >
         {error ? (
           <p className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">{error}</p>
@@ -269,22 +269,28 @@ export function ChatWindow({
               }
             }}
             rows={1}
-            placeholder="Yaz veya mikrofona bas — “bugünü planla”, “matı yarına al”…"
-            className="min-h-12 flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
+            placeholder=""
+            aria-label="Mesaj"
+            className="min-h-12 flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none ring-accent/40 focus:ring-2"
           />
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="h-12 rounded-2xl bg-white px-4 text-sm font-semibold text-black disabled:opacity-50"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-black disabled:opacity-40"
+            aria-label="Gönder"
           >
-            Gönder
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+              <path
+                d="M5 12h12M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
-        <p className="mx-auto mt-2 max-w-3xl text-[11px] text-muted">
-          {listening
-            ? "Dinliyorum…"
-            : "Ücretsiz ses: tarayıcı konuşma API’si, yoksa Groq Whisper."}
-        </p>
+        {listening ? <p className="mx-auto mt-2 max-w-3xl text-[11px] text-muted">Dinliyorum…</p> : null}
       </form>
     </div>
   );

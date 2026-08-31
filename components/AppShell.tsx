@@ -88,15 +88,17 @@ export async function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:hidden">
-          <Link href="/chat" className="text-xs font-semibold tracking-[0.16em] text-accent">
-            Sınav Koçu
-          </Link>
-          <span className="truncate text-sm text-muted">{profile.displayName}</span>
+        <header className="border-b border-white/10 md:hidden">
+          <div className="flex items-center justify-between px-4 pt-3 pb-1">
+            <Link href="/chat" className="text-[10px] font-semibold tracking-[0.16em] text-accent">
+              SINAV KOÇU
+            </Link>
+            <span className="truncate text-xs text-muted">{profile.displayName}</span>
+          </div>
+          <MobileNav todayCount={todayCount} />
         </header>
-        <section className="flex min-h-0 flex-1 flex-col pb-16 md:pb-0">{children}</section>
+        <section className="flex min-h-0 flex-1 flex-col">{children}</section>
       </div>
-      <MobileNav todayCount={todayCount} />
     </div>
   );
 }

@@ -11,9 +11,7 @@ export default function ErrorPage({
     <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
       <p className="text-xs font-semibold tracking-[0.2em] text-accent">Sınav Koçu</p>
       <h1 className="mt-4 font-serif text-4xl">Sayfa yüklenemedi</h1>
-      <p className="mt-3 text-muted">
-        Sunucu hatası. Çoğu zaman eski oturum + boş veritabanı döngüsüdür. Çıkış yapıp canlı siteden kayıt ol.
-      </p>
+      <p className="mt-3 text-muted">Bir şey ters gitti. Sayfayı yenile veya yeniden giriş yap.</p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"

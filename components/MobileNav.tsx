@@ -9,14 +9,14 @@ export function MobileNav({ todayCount }: { todayCount: number }) {
     { href: "/chat", label: "Sohbet", match: pathname.startsWith("/chat") },
     {
       href: "/calendar",
-      label: todayCount ? `Takvim (${todayCount})` : "Takvim",
+      label: todayCount ? `Takvim · ${todayCount}` : "Takvim",
       match: pathname.startsWith("/calendar"),
     },
     { href: "/onboarding", label: "Profil", match: pathname.startsWith("/onboarding") },
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-[#0c0c0e]/95 px-2 py-2 backdrop-blur md:hidden">
+    <nav className="border-t border-white/10 px-2 pb-2 pt-1 md:hidden">
       <div className="grid grid-cols-3 gap-1">
         {items.map((item) => (
           <Link

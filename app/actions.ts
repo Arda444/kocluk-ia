@@ -72,15 +72,12 @@ async function credentialsSignIn(email: string, password: string, redirectTo: st
     if (isRedirectError(error)) throw error;
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return {
-          error:
-            "E-posta veya şifre hatalı. Canlı sitede yerel hesap durmaz — bu siteden yeniden kayıt ol.",
-        };
+        return { error: "E-posta veya şifre hatalı." };
       }
       if (error.type === "MissingSecret") {
-        return { error: "AUTH_SECRET Vercel’de yok. Environment Variables’a ekleyip Redeploy yap." };
+        return { error: "Giriş şu an yapılamıyor. Lütfen biraz sonra tekrar dene." };
       }
-      return { error: `Giriş yapılamadı (${error.type}). AUTH_URL localhost olmamalı.` };
+      return { error: "Giriş yapılamadı. Lütfen tekrar dene." };
     }
     return { error: dbErrorMessage(error) };
   }

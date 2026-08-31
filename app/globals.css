@@ -59,6 +59,10 @@ select option {
   }
 }
 
-.voice-ring {
-  animation: pulse-ring 1.4s ease-out infinite;
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

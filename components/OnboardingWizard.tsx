@@ -115,7 +115,7 @@ export function OnboardingWizard({
             value={values.displayName}
             onChange={(event) => setField("displayName", event.target.value)}
             placeholder="Adın"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 outline-none ring-accent/40 focus:ring-2"
+            className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base outline-none ring-accent/40 focus:ring-2"
           />
         ) : null}
 
@@ -225,7 +225,7 @@ export function OnboardingWizard({
               value={values.target}
               onChange={(event) => setField("target", event.target.value)}
               placeholder="Örn. ODTÜ Bilgisayar — boş bırakabilirsin"
-              className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 outline-none ring-accent/40 focus:ring-2"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base outline-none ring-accent/40 focus:ring-2"
             />
             <p className="mt-3 text-sm text-muted">Zorunlu değil. Atlayabilirsin.</p>
           </div>
@@ -236,7 +236,7 @@ export function OnboardingWizard({
             value={values.weakSubjects}
             onChange={(event) => setField("weakSubjects", event.target.value)}
             placeholder="Örn. geometri ve fizik"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 outline-none ring-accent/40 focus:ring-2"
+            className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base outline-none ring-accent/40 focus:ring-2"
           />
         ) : null}
       </div>

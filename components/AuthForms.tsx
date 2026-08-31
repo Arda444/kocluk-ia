@@ -28,7 +28,7 @@ function Field({
         minLength={minLength}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-foreground outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
+        className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-base text-foreground outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
       />
     </label>
   );

@@ -3,13 +3,13 @@ import { LoginForm } from "@/components/AuthForms";
 
 function authErrorMessage(error?: string) {
   if (error === "SessionExpired") {
-    return "Oturum eski veritabanına aitti. Canlı siteden yeniden kayıt ol. Turso doğruysa bir daha silinmez.";
+    return "Oturumun sona erdi. Lütfen tekrar giriş yap veya kayıt ol.";
   }
   if (error === "Configuration") {
-    return "Sunucu ayarı eksik. Vercel’de AUTH_SECRET ekleyip Redeploy et; AUTH_URL localhost olmasın.";
+    return "Giriş şu an yapılamıyor. Lütfen biraz sonra tekrar dene.";
   }
   if (error === "CredentialsSignin" || error === "AccessDenied") {
-    return "E-posta veya şifre hatalı. Canlı sitede yerel hesap durmaz — buradan kayıt ol.";
+    return "E-posta veya şifre hatalı.";
   }
   return null;
 }
