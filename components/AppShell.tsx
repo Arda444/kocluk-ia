@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/auth";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { auth } from "@/auth";
 import { prisma, ensureSchema } from "@/lib/prisma";
 import { NewChatButton, SignOutButton } from "@/components/SidebarActions";
 import { ConversationList } from "@/components/ConversationList";
@@ -15,30 +16,39 @@ export async function AppShell({ children }: { children: ReactNode }) {
     redirect("/login");
   }
 
-  await ensureSchema();
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user) {
-    await signOut({ redirectTo: "/login?error=SessionExpired" });
-    redirect("/login?error=SessionExpired");
+  let profile;
+  let conversations: Array<{ id: string; title: string }> = [];
+  let todayCount = 0;
+  try {
+    await ensureSchema();
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!user) {
+      redirect("/logout");
+    }
+    const found = await prisma.profile.findUnique({
+      where: { userId: session.user.id },
+    });
+    if (!found) {
+      redirect("/onboarding");
+    }
+    profile = found;
+    [conversations, todayCount] = await Promise.all([
+      prisma.conversation.findMany({
+        where: { userId: session.user.id },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true, title: true },
+      }),
+      prisma.studyTask.count({
+        where: { userId: session.user.id, date: istanbulToday(), done: false },
+      }),
+    ]);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    redirect("/logout");
   }
-
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
   if (!profile) {
     redirect("/onboarding");
   }
-
-  const [conversations, todayCount] = await Promise.all([
-    prisma.conversation.findMany({
-      where: { userId: session.user.id },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, title: true },
-    }),
-    prisma.studyTask.count({
-      where: { userId: session.user.id, date: istanbulToday(), done: false },
-    }),
-  ]);
 
   return (
     <div className="flex h-svh min-h-0 flex-col md:flex-row">

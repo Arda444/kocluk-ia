@@ -15,13 +15,15 @@ export default auth((req) => {
   const isAuthPage = pathname === "/login" || pathname === "/register";
   const isLanding = pathname === "/";
   const isApi = pathname.startsWith("/api/");
+  const isLogout = pathname === "/logout";
+  const loginHasError = pathname === "/login" && req.nextUrl.searchParams.has("error");
   const isIcon =
     STATIC_FILE.test(pathname) ||
     pathname.startsWith("/apple-icon") ||
     pathname.startsWith("/apple-touch-icon") ||
     pathname === "/icon";
 
-  if (isApi || isLanding || isIcon) {
+  if (isApi || isLanding || isIcon || isLogout) {
     return NextResponse.next();
   }
 
@@ -31,7 +33,7 @@ export default auth((req) => {
     return NextResponse.redirect(login);
   }
 
-  if (loggedIn && isAuthPage) {
+  if (loggedIn && isAuthPage && !loginHasError) {
     return NextResponse.redirect(new URL("/chat", req.url));
   }
 

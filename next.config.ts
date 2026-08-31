@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@libsql/client", "@prisma/adapter-libsql", "@prisma/client"],
+  outputFileTracingIncludes: {
+    "/*": ["./prisma/migrations/**/*"],
+  },
   async rewrites() {
     return [
       { source: "/apple-touch-icon.png", destination: "/apple-icon" },

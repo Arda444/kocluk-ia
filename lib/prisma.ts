@@ -3,6 +3,7 @@ import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { BUNDLED_MIGRATIONS } from "@/lib/schema-sql";
 import { tursoConfig } from "@/lib/env-value";
 
 const globalForPrisma = globalThis as unknown as {
@@ -37,30 +38,40 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 globalForPrisma.prisma = prisma;
 
 async function applyMigrations() {
+  const statements: string[] = [];
+  for (const sql of BUNDLED_MIGRATIONS) {
+    statements.push(
+      ...sql
+        .split(";")
+        .map((part) => part.trim())
+        .filter(Boolean),
+    );
+  }
   const dir = path.join(process.cwd(), "prisma", "migrations");
-  let folders: string[] = [];
   try {
-    folders = readdirSync(dir)
+    const folders = readdirSync(dir)
       .filter((name) => name !== "migration_lock.toml")
       .sort();
+    for (const folder of folders) {
+      const file = path.join(dir, folder, "migration.sql");
+      const sql = readFileSync(file, "utf8");
+      statements.push(
+        ...sql
+          .split(";")
+          .map((part) => part.trim())
+          .filter(Boolean),
+      );
+    }
   } catch {
-    return;
+    // Vercel bundle may omit prisma/migrations; bundled SQL is enough for empty DBs.
   }
-  for (const folder of folders) {
-    const file = path.join(dir, folder, "migration.sql");
-    const sql = readFileSync(file, "utf8");
-    const statements = sql
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean);
-    for (const statement of statements) {
-      try {
-        await prisma.$executeRawUnsafe(statement);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "";
-        if (!/already exists|duplicate/i.test(message)) {
-          throw error;
-        }
+  for (const statement of statements) {
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!/already exists|duplicate|duplicate column/i.test(message)) {
+        throw error;
       }
     }
   }
