@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { auth, signOut } from "@/auth";
+import { prisma, ensureSchema } from "@/lib/prisma";
 import { NewChatButton, SignOutButton } from "@/components/SidebarActions";
 import { ConversationList } from "@/components/ConversationList";
 import { MobileNav } from "@/components/MobileNav";
@@ -13,6 +13,13 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
+  }
+
+  await ensureSchema();
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) {
+    await signOut({ redirectTo: "/login?error=SessionExpired" });
+    redirect("/login?error=SessionExpired");
   }
 
   const profile = await prisma.profile.findUnique({

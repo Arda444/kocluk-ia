@@ -1,18 +1,27 @@
 import Groq from "groq-sdk";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { extractPlanItems } from "@/lib/plan";
 import { istanbulToday } from "@/lib/dates";
-import { getGroqApiKey, groqMissingMessage } from "@/lib/groq-env";
+import { getGroqApiKey, groqErrorMessage, groqMissingMessage } from "@/lib/groq-env";
 
 const PRIMARY_MODEL = "llama-3.3-70b-versatile";
 const FALLBACK_MODEL = "llama-3.1-8b-instant";
+
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Giriş gerekli." }, { status: 401 });
+  }
+
+  try {
+    await ensureSchema();
+  } catch (error) {
+    return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
   }
 
   const groqKey = getGroqApiKey();
@@ -30,42 +39,53 @@ export async function POST(request: Request) {
     return Response.json({ error: "Mesaj ve sohbet gerekli." }, { status: 400 });
   }
 
-  const conversation = await prisma.conversation.findFirst({
-    where: { id: conversationId, userId: session.user.id },
-    include: { messages: { orderBy: { createdAt: "asc" } } },
-  });
-  if (!conversation) {
-    return Response.json({ error: "Sohbet bulunamadı." }, { status: 404 });
+  let conversation;
+  let profile;
+  let todayTasks;
+  let userMessage;
+  try {
+    conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId: session.user.id },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!conversation) {
+      return Response.json(
+        { error: "Sohbet bulunamadı. Hesap sıfırlanmış olabilir — çıkış yapıp canlı siteden yeniden kayıt ol." },
+        { status: 404 },
+      );
+    }
+
+    profile = await prisma.profile.findUnique({
+      where: { userId: session.user.id },
+    });
+    if (!profile) {
+      return Response.json({ error: "Önce tanışma formunu doldur." }, { status: 400 });
+    }
+
+    todayTasks = await prisma.studyTask.findMany({
+      where: { userId: session.user.id, date: istanbulToday() },
+      orderBy: { createdAt: "asc" },
+    });
+
+    userMessage = await prisma.message.create({
+      data: { conversationId, role: "user", content },
+    });
+
+    const userMessageCount = conversation.messages.filter((m) => m.role === "user").length;
+    const title =
+      userMessageCount === 0
+        ? content.length > 48
+          ? `${content.slice(0, 48)}…`
+          : content
+        : conversation.title;
+
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { title, updatedAt: new Date() },
+    });
+  } catch (error) {
+    return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
   }
-
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
-  if (!profile) {
-    return Response.json({ error: "Önce tanışma formunu doldur." }, { status: 400 });
-  }
-
-  const todayTasks = await prisma.studyTask.findMany({
-    where: { userId: session.user.id, date: istanbulToday() },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const userMessage = await prisma.message.create({
-    data: { conversationId, role: "user", content },
-  });
-
-  const userMessageCount = conversation.messages.filter((m) => m.role === "user").length;
-  const title =
-    userMessageCount === 0
-      ? content.length > 48
-        ? `${content.slice(0, 48)}…`
-        : content
-      : conversation.title;
-
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { title, updatedAt: new Date() },
-  });
 
   const history = [...conversation.messages, userMessage].map((message) => ({
     role: message.role as "user" | "assistant",
@@ -85,14 +105,20 @@ export async function POST(request: Request) {
       messages,
       stream: true,
       temperature: 0.55,
+      max_tokens: 1200,
     });
-  } catch {
-    groqStream = await groq.chat.completions.create({
-      model: FALLBACK_MODEL,
-      messages,
-      stream: true,
-      temperature: 0.55,
-    });
+  } catch (firstError) {
+    try {
+      groqStream = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages,
+        stream: true,
+        temperature: 0.55,
+        max_tokens: 1200,
+      });
+    } catch (secondError) {
+      return Response.json({ error: groqErrorMessage(secondError ?? firstError) }, { status: 502 });
+    }
   }
 
   const encoder = new TextEncoder();

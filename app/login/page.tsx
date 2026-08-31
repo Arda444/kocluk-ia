@@ -2,6 +2,9 @@ import Link from "next/link";
 import { LoginForm } from "@/components/AuthForms";
 
 function authErrorMessage(error?: string) {
+  if (error === "SessionExpired") {
+    return "Oturum eski veritabanına aitti. Canlı siteden yeniden kayıt ol. Turso doğruysa bir daha silinmez.";
+  }
   if (error === "Configuration") {
     return "Sunucu ayarı eksik. Vercel’de AUTH_SECRET ekleyip Redeploy et; AUTH_URL localhost olmasın.";
   }

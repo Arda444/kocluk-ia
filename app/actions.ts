@@ -224,6 +224,8 @@ export async function createConversationAction() {
     redirect("/login");
   }
 
+  await ensureSchema();
+
   const profile = await prisma.profile.findUnique({
     where: { userId: session.user.id },
   });

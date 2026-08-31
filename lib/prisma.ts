@@ -3,6 +3,7 @@ import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { tursoConfig } from "@/lib/env-value";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -10,7 +11,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function resolveDatabaseUrl() {
-  if (process.env.TURSO_DATABASE_URL) {
+  if (tursoConfig()) {
     return process.env.DATABASE_URL ?? "file:./dev.db";
   }
   if (process.env.VERCEL) {
@@ -21,11 +22,11 @@ function resolveDatabaseUrl() {
 
 function createPrismaClient() {
   resolveDatabaseUrl();
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  if (tursoUrl) {
+  const turso = tursoConfig();
+  if (turso) {
     const adapter = new PrismaLibSQL({
-      url: tursoUrl,
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      url: turso.url,
+      authToken: turso.authToken,
     });
     return new PrismaClient({ adapter });
   }
@@ -33,10 +34,7 @@ function createPrismaClient() {
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 
 async function applyMigrations() {
   const dir = path.join(process.cwd(), "prisma", "migrations");
@@ -87,7 +85,7 @@ export function dbErrorMessage(error: unknown) {
     return "AUTH_SECRET Vercel’de yok. Settings → Environment Variables.";
   }
   if (/Unable to (open|require)|SQLITE|no such table|database|Turso|libsql|ECONN/i.test(message)) {
-    return "Canlı veritabanı hazır değil. Vercel’e TURSO_DATABASE_URL ve TURSO_AUTH_TOKEN ekle; yoksa kayıt soğuk başlangıçta silinir. Önce bu siteden kayıt ol.";
+    return "Canlı veritabanı bağlanamadı. TURSO_DATABASE_URL libsql://...turso.io olmalı (app.turso.tech panel linki değil), TURSO_AUTH_TOKEN dolu olsun, sonra Redeploy.";
   }
   return "Giriş/kayıt şu an başarısız. Vercel loguna bak: AUTH_SECRET, AUTH_URL (localhost olmasın), Turso.";
 }
