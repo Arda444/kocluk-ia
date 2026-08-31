@@ -21,7 +21,7 @@ export default async function LandingPage() {
             </Link>
           ) : (
             <>
-              <Link href="/login" className="hidden text-muted hover:text-foreground sm:inline">
+              <Link href="/login" className="text-muted hover:text-foreground">
                 Giriş
               </Link>
               <Link

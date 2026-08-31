@@ -5,6 +5,9 @@ import { authConfig } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
+const STATIC_FILE =
+  /\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest)$/i;
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const loggedIn = Boolean(req.auth);
@@ -12,8 +15,13 @@ export default auth((req) => {
   const isAuthPage = pathname === "/login" || pathname === "/register";
   const isLanding = pathname === "/";
   const isApi = pathname.startsWith("/api/");
+  const isIcon =
+    STATIC_FILE.test(pathname) ||
+    pathname.startsWith("/apple-icon") ||
+    pathname.startsWith("/apple-touch-icon") ||
+    pathname === "/icon";
 
-  if (isApi || isLanding) {
+  if (isApi || isLanding || isIcon) {
     return NextResponse.next();
   }
 

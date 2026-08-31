@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ChatWindow } from "@/components/ChatWindow";
@@ -21,7 +21,7 @@ export default async function ConversationPage({
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
   if (!conversation) {
-    notFound();
+    redirect("/chat");
   }
 
   const todayTasks = await prisma.studyTask.findMany({

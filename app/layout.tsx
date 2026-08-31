@@ -15,6 +15,11 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Sınav Koçu",
   description: "LGS ve YKS için sesli çalışma koçu — plan, takvim, senin kaynağın.",
+  appleWebApp: {
+    capable: true,
+    title: "Sınav Koçu",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
