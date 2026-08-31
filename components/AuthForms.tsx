@@ -9,12 +9,14 @@ function Field({
   type = "text",
   autoComplete,
   placeholder,
+  minLength,
 }: {
   label: string;
   name: string;
   type?: string;
   autoComplete?: string;
   placeholder?: string;
+  minLength?: number;
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
@@ -23,6 +25,7 @@ function Field({
         name={name}
         type={type}
         required
+        minLength={minLength}
         autoComplete={autoComplete}
         placeholder={placeholder}
         className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-foreground outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
@@ -51,6 +54,8 @@ export function LoginForm() {
         name="password"
         type="password"
         autoComplete="current-password"
+        placeholder="En az 6 karakter"
+        minLength={6}
       />
       {state?.error ? (
         <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">{state.error}</p>
@@ -88,6 +93,7 @@ export function RegisterForm() {
         type="password"
         autoComplete="new-password"
         placeholder="En az 6 karakter"
+        minLength={6}
       />
       {state?.error ? (
         <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">{state.error}</p>

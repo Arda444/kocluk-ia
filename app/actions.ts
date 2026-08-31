@@ -4,11 +4,12 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { z } from "zod";
 import { auth, signIn, signOut } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
 import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS } from "@/lib/labels";
 import { welcomeMessage } from "@/lib/prompt";
 import { istanbulNowLabel, istanbulToday } from "@/lib/dates";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
 
 const registerSchema = z.object({
@@ -19,7 +20,7 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().trim().email("Geçerli bir e-posta gir."),
-  password: z.string().min(1, "Şifre gerekli."),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalı."),
 });
 
 const profileSchema = z
@@ -63,6 +64,27 @@ const taskSchema = z.object({
 
 export type ActionState = { error?: string } | undefined;
 
+async function credentialsSignIn(email: string, password: string, redirectTo: string) {
+  try {
+    await signIn("credentials", { email, password, redirectTo });
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    if (error instanceof AuthError) {
+      if (error.type === "CredentialsSignin") {
+        return {
+          error:
+            "E-posta veya şifre hatalı. Canlı sitede yerel hesap durmaz — bu siteden yeniden kayıt ol.",
+        };
+      }
+      if (error.type === "MissingSecret") {
+        return { error: "AUTH_SECRET Vercel’de yok. Environment Variables’a ekleyip Redeploy yap." };
+      }
+      return { error: `Giriş yapılamadı (${error.type}). AUTH_URL localhost olmamalı.` };
+    }
+    return { error: dbErrorMessage(error) };
+  }
+}
+
 export async function registerAction(
   _prev: ActionState,
   formData: FormData,
@@ -77,33 +99,26 @@ export async function registerAction(
   }
 
   const email = parsed.data.email.toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return { error: "Bu e-posta zaten kayıtlı. Giriş yapmayı dene." };
-  }
-
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  await prisma.user.create({
-    data: {
-      name: parsed.data.name,
-      email,
-      passwordHash,
-    },
-  });
-
   try {
-    await signIn("credentials", {
-      email,
-      password: parsed.data.password,
-      redirect: false,
+    await ensureSchema();
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return { error: "Bu e-posta zaten kayıtlı. Giriş yapmayı dene." };
+    }
+
+    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+    await prisma.user.create({
+      data: {
+        name: parsed.data.name,
+        email,
+        passwordHash,
+      },
     });
   } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Kayıt oldu ama giriş yapılamadı. Giriş sayfasını dene." };
-    }
-    throw error;
+    return { error: dbErrorMessage(error) };
   }
-  redirect("/onboarding");
+
+  return credentialsSignIn(email, parsed.data.password, "/onboarding");
 }
 
 export async function loginAction(
@@ -119,18 +134,16 @@ export async function loginAction(
   }
 
   try {
-    await signIn("credentials", {
-      email: parsed.data.email.toLowerCase(),
-      password: parsed.data.password,
-      redirect: false,
-    });
+    await ensureSchema();
   } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "E-posta veya şifre hatalı." };
-    }
-    throw error;
+    return { error: dbErrorMessage(error) };
   }
-  redirect("/chat");
+
+  return credentialsSignIn(
+    parsed.data.email.toLowerCase(),
+    parsed.data.password,
+    "/chat",
+  );
 }
 
 export async function signOutAction() {
@@ -145,6 +158,8 @@ export async function saveProfileAction(
   if (!session?.user?.id) {
     return { error: "Oturum gerekli." };
   }
+
+  await ensureSchema();
 
   const parsed = profileSchema.safeParse({
     displayName: formData.get("displayName"),

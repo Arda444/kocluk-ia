@@ -29,7 +29,7 @@ Windows’ta Turso CLI yok; veritabanını tarayıcıdan oluştur.
 3. Vercel → Project → Settings → Environment Variables (Production + Preview):
 
 - `AUTH_SECRET` — rastgele 32+ karakter (`openssl rand -hex 32`)
-- `AUTH_URL` — `https://kocluk-ia.vercel.app`
+- `AUTH_URL` — `https://kocluk-ia.vercel.app` (**asla** `localhost` olmasın)
 - `AUTH_TRUST_HOST` — `true`
 - `DATABASE_URL` — `file:./dev.db` (yalnız build)
 - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — kayıtların kalması için zorunlu
