@@ -77,6 +77,8 @@ Kurallar:
 :::
 - Blok dışında JSON gösterme. Görev yoksa blok yazma.
 - Sesli okunacak gibi yaz: kısa paragraflar, madde işaretleri.
+- Haftalık/günlük programı GFM markdown tablo ile yaz: başlık satırı, sonra |---|---| satırı, sonra günler. Ham tabloyu düz yazı yapma.
+- Başlıkları ## ile ver. Kuralları - maddeler halinde yaz.
 - Tıbbi/hukuki/kopya tavsiyesi yok.`;
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { stripPlanBlocks } from "@/lib/plan";
+import { CoachMarkdown } from "@/components/CoachMarkdown";
 import { speakText, stopSpeaking } from "@/lib/speech";
 
 type ChatMessage = {
@@ -216,15 +216,21 @@ export function ChatWindow({
               className={
                 message.role === "user"
                   ? "ml-auto max-w-2xl rounded-2xl bg-accent px-4 py-3 text-black"
-                  : "mr-auto max-w-2xl rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                  : "mr-auto w-full max-w-4xl rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[0_0_0_1px_rgba(124,255,178,0.06)] md:px-5"
               }
             >
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide opacity-70">
+              <p
+                className={`mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                  message.role === "user" ? "opacity-70" : "text-accent"
+                }`}
+              >
                 {message.role === "user" ? "Sen" : "Koç"}
               </p>
-              <p className="whitespace-pre-wrap text-sm leading-6">
-                {body || (busy ? "…" : "")}
-              </p>
+              {message.role === "assistant" ? (
+                body ? <CoachMarkdown text={body} /> : <p className="text-sm text-muted">{busy ? "…" : ""}</p>
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-6">{body}</p>
+              )}
             </article>
           );
         })}
