@@ -96,7 +96,7 @@ export function ChatWindow({
       }
 
       if (voiceOn && assembled.trim()) {
-        await speakText(assembled);
+        await speakText(assembled); // TTS after stream completes
       }
       router.refresh();
     } catch (err) {
