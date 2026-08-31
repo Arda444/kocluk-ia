@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CoachMarkdown } from "@/components/CoachMarkdown";
-import { speakText, stopSpeaking } from "@/lib/speech";
+import { primeSpeech, speakText, stopSpeaking } from "@/lib/speech";
 
 type ChatMessage = {
   id: string;
@@ -28,7 +28,7 @@ export function ChatWindow({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(true);
   const [listening, setListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
@@ -55,6 +55,8 @@ export function ChatWindow({
     };
     const assistantId = `stream-${Date.now()}`;
 
+    primeSpeech();
+    if (!voiceOn) stopSpeaking();
     setInput("");
     setError(null);
     setBusy(true);
@@ -93,8 +95,9 @@ export function ChatWindow({
         );
       }
 
-      const spoken = stripPlanBlocks(assembled);
-      if (voiceOn && spoken) speakText(spoken);
+      if (voiceOn && assembled.trim()) {
+        await speakText(assembled);
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bir hata oluştu.");
@@ -192,6 +195,7 @@ export function ChatWindow({
       return;
     }
     setVoiceOn(true);
+    primeSpeech();
     stopSpeaking();
     setListening(true);
     if (!startBrowserListen()) {
@@ -250,9 +254,25 @@ export function ChatWindow({
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <button
             type="button"
+            onClick={() => {
+              const next = !voiceOn;
+              setVoiceOn(next);
+              if (next) primeSpeech();
+              else stopSpeaking();
+            }}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+              voiceOn ? "bg-accent text-black" : "border border-white/15 text-muted"
+            }`}
+            aria-label={voiceOn ? "Sesli yanıt açık" : "Sesli yanıt kapalı"}
+            aria-pressed={voiceOn}
+          >
+            <span className="text-lg">{voiceOn ? "🔊" : "🔇"}</span>
+          </button>
+          <button
+            type="button"
             onClick={() => void toggleListen()}
             className={`relative h-12 w-12 shrink-0 rounded-full ${
-              listening ? "bg-coral text-black" : "bg-accent text-black"
+              listening ? "bg-coral text-black" : "border border-white/15 text-muted"
             }`}
             aria-label="Sesli konuş"
           >
