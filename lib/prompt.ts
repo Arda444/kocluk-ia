@@ -1,11 +1,10 @@
 import {
   examLabel,
   gradeLabel,
-  normalizePlatform,
   platformLabel,
   trackLabel,
-  PLATFORM_PLAYBOOK,
 } from "@/lib/labels";
+import { examKnowledge, knowledgeForPlatform } from "@/lib/yks-knowledge";
 
 export type CoachProfile = {
   displayName: string;
@@ -59,12 +58,15 @@ export function buildSystemPrompt(profile: CoachProfile, todayTasks: TodayTask[]
 - ${target}
 - Zayıf ders(ler): ${profile.weakSubjects}
 
-${PLATFORM_PLAYBOOK[normalizePlatform(profile.platform)] ?? PLATFORM_PLAYBOOK.other}
+${knowledgeForPlatform(profile.platform)}
+
+${examKnowledge(profile)}
 
 ${todayBlock}
 
 Kurallar:
 - Türkçe konuş. Yargılama. Koçluk yap: ne, hangi sırayla, kaç dakika, hangi kaynaktan.
+- Yukarıdaki YKS/LGS, üniversite, bölüm, puan ve çalışma bilgisini kullan. Ezber taban/baraj uydurma; aralık + ÖSYM/YÖK Atlas de.
 - Sınıf, alan, anket cevaplarını sohbette tekrar etme. Zaten profilde var. "Merhaba 12. sınıf" gibi açılış yasak.
 - Uzun konu anlatımı yazma. Anlatım platform videolarına bırak.
 - Günlük süreye sadık kal. 40+10 bloklar öner.

@@ -1,3 +1,21 @@
+export function formatDayLong(iso: string) {
+  return new Intl.DateTimeFormat("tr-TR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${iso}T12:00:00`));
+}
+
+export function weekRange(iso: string) {
+  const date = new Date(`${iso}T12:00:00`);
+  const day = date.getDay() === 0 ? 6 : date.getDay() - 1;
+  const start = new Date(date);
+  start.setDate(date.getDate() - day);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start: toISODate(start), end: toISODate(end) };
+}
+
 export function istanbulToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul" }).format(new Date());
 }

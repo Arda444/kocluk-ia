@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { toggleTaskAction } from "@/app/actions";
+import { subjectDot } from "@/lib/subjects";
 
 export type TodayTaskItem = {
   id: string;
@@ -44,7 +45,8 @@ export function TodayPanel({ tasks }: { tasks: TodayTaskItem[] }) {
             </form>
             <span className={task.done ? "text-muted line-through" : ""}>
               {task.title}
-              <span className="ml-2 text-xs text-muted">
+              <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-muted">
+                {task.subject ? <span className={`h-1.5 w-1.5 rounded-full ${subjectDot(task.subject)}`} /> : null}
                 {task.minutes} dk{task.subject ? ` · ${task.subject}` : ""}
               </span>
             </span>
