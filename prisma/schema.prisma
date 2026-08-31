@@ -15,6 +15,7 @@ model User {
   createdAt     DateTime       @default(now())
   profile       Profile?
   conversations Conversation[]
+  studyTasks    StudyTask[]
 }
 
 model Profile {
@@ -25,8 +26,10 @@ model Profile {
   examType     String
   grade        String
   track        String?
+  platform     String   @default("youtube")
+  platformNote String   @default("")
   dailyHours   Float
-  target       String
+  target       String   @default("")
   weakSubjects String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -49,4 +52,16 @@ model Message {
   role           String
   content        String
   createdAt      DateTime     @default(now())
+}
+
+model StudyTask {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  title     String
+  subject   String   @default("")
+  minutes   Int      @default(40)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

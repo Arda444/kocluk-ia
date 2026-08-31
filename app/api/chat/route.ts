@@ -2,6 +2,8 @@ import Groq from "groq-sdk";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "@/lib/prompt";
+import { extractPlanItems } from "@/lib/plan";
+import { istanbulToday } from "@/lib/dates";
 
 const PRIMARY_MODEL = "llama-3.3-70b-versatile";
 const FALLBACK_MODEL = "llama-3.1-8b-instant";
@@ -44,35 +46,36 @@ export async function POST(request: Request) {
     return Response.json({ error: "Önce tanışma formunu doldur." }, { status: 400 });
   }
 
+  const todayTasks = await prisma.studyTask.findMany({
+    where: { userId: session.user.id, date: istanbulToday() },
+    orderBy: { createdAt: "asc" },
+  });
+
   const userMessage = await prisma.message.create({
     data: { conversationId, role: "user", content },
   });
 
   const userMessageCount = conversation.messages.filter((m) => m.role === "user").length;
-  if (userMessageCount === 0) {
-    const title = content.length > 48 ? `${content.slice(0, 48)}…` : content;
-    await prisma.conversation.update({
-      where: { id: conversationId },
-      data: { title, updatedAt: new Date() },
-    });
-  } else {
-    await prisma.conversation.update({
-      where: { id: conversationId },
-      data: { updatedAt: new Date() },
-    });
-  }
+  const title =
+    userMessageCount === 0
+      ? content.length > 48
+        ? `${content.slice(0, 48)}…`
+        : content
+      : conversation.title;
 
-  const history = [
-    ...conversation.messages,
-    userMessage,
-  ].map((message) => ({
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { title, updatedAt: new Date() },
+  });
+
+  const history = [...conversation.messages, userMessage].map((message) => ({
     role: message.role as "user" | "assistant",
     content: message.content,
   }));
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const messages = [
-    { role: "system" as const, content: buildSystemPrompt(profile) },
+    { role: "system" as const, content: buildSystemPrompt(profile, todayTasks, istanbulToday()) },
     ...history,
   ];
 
@@ -82,14 +85,14 @@ export async function POST(request: Request) {
       model: PRIMARY_MODEL,
       messages,
       stream: true,
-      temperature: 0.6,
+      temperature: 0.55,
     });
   } catch {
     groqStream = await groq.chat.completions.create({
       model: FALLBACK_MODEL,
       messages,
       stream: true,
-      temperature: 0.6,
+      temperature: 0.55,
     });
   }
 
@@ -106,8 +109,26 @@ export async function POST(request: Request) {
           }
         }
         if (full.trim()) {
+          const { clean, items } = extractPlanItems(full);
+          if (items.length) {
+            await prisma.studyTask.createMany({
+              data: items.map((item) => ({
+                userId: session.user.id,
+                date: item.date,
+                title: item.title,
+                subject: item.subject ?? "",
+                minutes: item.minutes ?? 40,
+              })),
+            });
+          }
           await prisma.message.create({
-            data: { conversationId, role: "assistant", content: full },
+            data: {
+              conversationId,
+              role: "assistant",
+              content: items.length
+                ? `${clean}\n\n${items.length} görev takvime eklendi.`
+                : clean || full,
+            },
           });
           await prisma.conversation.update({
             where: { id: conversationId },

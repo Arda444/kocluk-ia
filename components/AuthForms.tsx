@@ -18,14 +18,14 @@ function Field({
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="font-medium text-slate-200">{label}</span>
+      <span className="font-medium">{label}</span>
       <input
         name={name}
         type={type}
         required
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-slate-50 outline-none ring-amber-400/40 placeholder:text-slate-500 focus:ring-2"
+        className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-foreground outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
       />
     </label>
   );
@@ -58,7 +58,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="h-11 rounded-xl bg-amber-400 font-semibold text-slate-950 transition hover:bg-amber-300 disabled:opacity-60"
+        className="h-11 rounded-xl bg-accent font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
       >
         {pending ? "Giriş yapılıyor…" : "Giriş yap"}
       </button>
@@ -95,7 +95,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={pending}
-        className="h-11 rounded-xl bg-amber-400 font-semibold text-slate-950 transition hover:bg-amber-300 disabled:opacity-60"
+        className="h-11 rounded-xl bg-accent font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
       >
         {pending ? "Kayıt olunuyor…" : "Kayıt ol"}
       </button>

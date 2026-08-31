@@ -11,7 +11,7 @@ export function ConversationList({
   const pathname = usePathname();
 
   if (conversations.length === 0) {
-    return <p className="px-2 py-4 text-sm text-slate-500">Henüz sohbet yok.</p>;
+    return <p className="px-2 py-4 text-sm text-muted">Henüz sohbet yok.</p>;
   }
 
   return (
@@ -23,9 +23,7 @@ export function ConversationList({
             key={conversation.id}
             href={`/chat/${conversation.id}`}
             className={`mb-1 block rounded-xl px-3 py-2 text-sm transition ${
-              active
-                ? "bg-amber-400/15 text-amber-100"
-                : "text-slate-200 hover:bg-white/5"
+              active ? "bg-accent/15 text-accent" : "text-foreground/90 hover:bg-white/5"
             }`}
           >
             <span className="line-clamp-2">{conversation.title}</span>

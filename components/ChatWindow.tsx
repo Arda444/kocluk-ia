@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { stripPlanBlocks } from "@/lib/plan";
+import { speakText, stopSpeaking } from "@/lib/speech";
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
 };
+
+function visibleAssistant(text: string) {
+  const cut = text.indexOf(":::plan");
+  return cut >= 0 ? text.slice(0, cut).trim() : text;
+}
 
 export function ChatWindow({
   conversationId,
@@ -21,7 +28,11 @@ export function ChatWindow({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [listening, setListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     setMessages(initialMessages);
@@ -31,15 +42,16 @@ export function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
 
-  async function send(event: React.FormEvent) {
-    event.preventDefault();
-    const content = input.trim();
-    if (!content || busy) return;
+  useEffect(() => () => stopSpeaking(), []);
+
+  async function sendText(content: string) {
+    const trimmed = content.trim();
+    if (!trimmed || busy) return;
 
     const userMessage: ChatMessage = {
       id: `local-${Date.now()}`,
       role: "user",
-      content,
+      content: trimmed,
     };
     const assistantId = `stream-${Date.now()}`;
 
@@ -56,7 +68,7 @@ export function ChatWindow({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, content }),
+        body: JSON.stringify({ conversationId, content: trimmed }),
       });
 
       if (!response.ok) {
@@ -81,6 +93,8 @@ export function ChatWindow({
         );
       }
 
+      const spoken = stripPlanBlocks(assembled);
+      if (voiceOn && spoken) speakText(spoken);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bir hata oluştu.");
@@ -90,59 +104,183 @@ export function ChatWindow({
     }
   }
 
+  function startBrowserListen() {
+    const Speech = (
+      window as unknown as {
+        SpeechRecognition?: new () => {
+          lang: string;
+          interimResults: boolean;
+          continuous: boolean;
+          start: () => void;
+          stop: () => void;
+          onresult: ((event: {
+            results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>;
+          }) => void) | null;
+          onerror: (() => void) | null;
+          onend: (() => void) | null;
+        };
+        webkitSpeechRecognition?: new () => {
+          lang: string;
+          interimResults: boolean;
+          continuous: boolean;
+          start: () => void;
+          stop: () => void;
+          onresult: ((event: {
+            results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>;
+          }) => void) | null;
+          onerror: (() => void) | null;
+          onend: (() => void) | null;
+        };
+      }
+    ).SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => never }).webkitSpeechRecognition;
+    if (!Speech) return false;
+    const recognition = new Speech();
+    recognition.lang = "tr-TR";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      const results = Array.from(event.results);
+      const transcript = results.map((result) => result[0].transcript).join(" ");
+      setInput(transcript);
+      const last = results[results.length - 1] as { isFinal?: boolean };
+      if (last?.isFinal) {
+        setListening(false);
+        void sendText(transcript);
+      }
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    return true;
+  }
+
+  async function startWhisperListen() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks: BlobPart[] = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) chunks.push(event.data);
+    };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      const form = new FormData();
+      form.append("audio", blob, "speech.webm");
+      const response = await fetch("/api/transcribe", { method: "POST", body: form });
+      const payload = (await response.json()) as { text?: string; error?: string };
+      if (!response.ok || !payload.text) {
+        setError(payload.error ?? "Ses anlaşılamadı.");
+        setListening(false);
+        return;
+      }
+      setListening(false);
+      await sendText(payload.text);
+    };
+    mediaRef.current = recorder;
+    recorder.start();
+    window.setTimeout(() => {
+      if (recorder.state === "recording") recorder.stop();
+    }, 8000);
+  }
+
+  async function toggleListen() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      if (mediaRef.current?.state === "recording") mediaRef.current.stop();
+      setListening(false);
+      return;
+    }
+    setVoiceOn(true);
+    stopSpeaking();
+    setListening(true);
+    if (!startBrowserListen()) {
+      try {
+        await startWhisperListen();
+      } catch {
+        setListening(false);
+        setError("Mikrofona izin ver.");
+      }
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-6 md:px-8">
-        {messages.map((message) => (
-          <article
-            key={message.id}
-            className={
-              message.role === "user"
-                ? "ml-auto max-w-2xl rounded-2xl bg-amber-400 px-4 py-3 text-slate-950"
-                : "mr-auto max-w-2xl rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-100"
-            }
-          >
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide opacity-70">
-              {message.role === "user" ? "Sen" : "Sınav Koçu"}
-            </p>
-            <p className="whitespace-pre-wrap text-sm leading-6">
-              {message.content || (busy ? "…" : "")}
-            </p>
-          </article>
-        ))}
+        {messages.map((message) => {
+          const body =
+            message.role === "assistant" ? visibleAssistant(message.content) : message.content;
+          return (
+            <article
+              key={message.id}
+              className={
+                message.role === "user"
+                  ? "ml-auto max-w-2xl rounded-2xl bg-accent px-4 py-3 text-black"
+                  : "mr-auto max-w-2xl rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+              }
+            >
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide opacity-70">
+                {message.role === "user" ? "Sen" : "Koç"}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-6">
+                {body || (busy ? "…" : "")}
+              </p>
+            </article>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
       <form
-        onSubmit={send}
-        className="border-t border-white/10 bg-[#0b1020]/80 p-4 backdrop-blur md:px-8"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void sendText(input);
+        }}
+        className="border-t border-white/10 bg-[#0c0c0e]/85 p-3 backdrop-blur md:px-8 md:py-4"
       >
         {error ? (
           <p className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">{error}</p>
         ) : null}
-        <div className="mx-auto flex max-w-3xl gap-2">
+        <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <button
+            type="button"
+            onClick={() => void toggleListen()}
+            className={`relative h-12 w-12 shrink-0 rounded-full ${
+              listening ? "bg-coral text-black" : "bg-accent text-black"
+            }`}
+            aria-label="Sesli konuş"
+          >
+            {listening ? <span className="voice-ring absolute inset-0 rounded-full bg-coral/40" /> : null}
+            <span className="relative text-lg">{listening ? "■" : "🎙"}</span>
+          </button>
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
+                void sendText(input);
               }
             }}
             rows={1}
-            placeholder="Bugünkü planı sor, deneme netini yaz, konu sırası iste…"
-            className="min-h-12 flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none ring-amber-400/40 placeholder:text-slate-500 focus:ring-2"
+            placeholder="Yaz veya mikrofona bas — “bugünü planla”, “matı yarına al”…"
+            className="min-h-12 flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none ring-accent/40 placeholder:text-muted focus:ring-2"
           />
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="h-12 rounded-2xl bg-amber-400 px-5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:opacity-50"
+            className="h-12 rounded-2xl bg-white px-4 text-sm font-semibold text-black disabled:opacity-50"
           >
             Gönder
           </button>
         </div>
+        <p className="mx-auto mt-2 max-w-3xl text-[11px] text-muted">
+          {listening
+            ? "Dinliyorum…"
+            : "Ücretsiz ses: tarayıcı konuşma API’si, yoksa Groq Whisper."}
+        </p>
       </form>
     </div>
   );
 }
+

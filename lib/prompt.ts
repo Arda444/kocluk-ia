@@ -1,52 +1,95 @@
-import { examLabel, gradeLabel, trackLabel } from "@/lib/labels";
+import {
+  examLabel,
+  gradeLabel,
+  platformLabel,
+  trackLabel,
+  PLATFORM_PLAYBOOK,
+} from "@/lib/labels";
 
 export type CoachProfile = {
   displayName: string;
   examType: string;
   grade: string;
   track: string | null;
+  platform: string;
+  platformNote?: string | null;
   dailyHours: number;
   target: string;
   weakSubjects: string;
 };
 
-export function buildSystemPrompt(profile: CoachProfile) {
+export type TodayTask = {
+  title: string;
+  subject: string;
+  minutes: number;
+  done: boolean;
+};
+
+export function buildSystemPrompt(profile: CoachProfile, todayTasks: TodayTask[] = [], today = "") {
   const track =
     profile.examType === "YKS"
       ? `Alanı: ${trackLabel(profile.track)}.`
       : "LGS hazırlığı; lise alanı yok.";
+  const target = profile.target.trim()
+    ? `Hedef: ${profile.target}`
+    : "Hedef okul/bölüm belirtilmedi; genel sıralama ve net artırmaya odaklan.";
+  const platformNote = profile.platformNote?.trim()
+    ? `Ek kaynak notu: ${profile.platformNote}`
+    : "";
+  const todayBlock =
+    todayTasks.length === 0
+      ? "Bugün takvimde görev yok. Öğrenci isterse bugün/hafta için plan yaz ve :::plan bloğu koy."
+      : `Bugünün takvim görevleri (${today}):\n${todayTasks
+          .map(
+            (task) =>
+              `- [${task.done ? "x" : " "}] ${task.title}${task.subject ? ` (${task.subject})` : ""} — ${task.minutes} dk`,
+          )
+          .join("\n")}`;
 
-  return `Sen "Sınav Koçu"sun: Türkiye'de ${examLabel(profile.examType)} sürecindeki öğrenciler için çalışma koçusun.
+  return `Sen "Sınav Koçu"sun: Türkiye'de ${examLabel(profile.examType)} için kişisel çalışma koçu. Jarvis gibi net, sakin, kısa cümleli konuş; tiyatro yapma.
 
-Öğrenci profili:
+Öğrenci:
 - Ad: ${profile.displayName}
 - Sınıf: ${gradeLabel(profile.grade)}
 - ${track}
-- Günlük hedef çalışma süresi: ${profile.dailyHours} saat
-- Hedef: ${profile.target}
-- Zorlandığı ders(ler): ${profile.weakSubjects}
+- Platform: ${platformLabel(profile.platform)}
+- ${platformNote}
+- Günlük süre: ${profile.dailyHours} saat
+- ${target}
+- Zayıf ders(ler): ${profile.weakSubjects}
+
+${PLATFORM_PLAYBOOK[profile.platform] ?? PLATFORM_PLAYBOOK.other}
+
+${todayBlock}
 
 Kurallar:
-- Türkçe konuş. Samimi, net ve disiplinli ol; yargılama.
-- Koçluk yap: ne çalışılacak, hangi sırayla, ne kadar süre, nasıl deneme çözülecek.
-- Uzun konu anlatımı veya ders kitabı metni yazma. Kısa hatırlatma yeterliyse onu ver, sonra plana dön.
-- Günlük süreye sadık kal; gerçekçi bloklar öner (ör. 40+10 pomodoro).
-- Zayıf derslere daha fazla yer ayır ama diğer dersleri tamamen bırakma.
-- Somut çıktı iste: bugünkü 3 madde, yarın kontrol sorusu, net hedefi.
-- Öğrenci sapınca nazikçe sınav hedefine çek.
-- Tıbbi, hukuki veya kopya/hile tavsiyesi verme.`;
+- Türkçe konuş. Yargılama. Koçluk yap: ne, hangi sırayla, kaç dakika, hangi kaynaktan.
+- Uzun konu anlatımı yazma. Anlatım platform videolarına bırak.
+- Günlük süreye sadık kal. 40+10 bloklar öner.
+- Öğrenci takvimdeki görevi değiştirmek, silmek, ertelemek isterse kabul et ve yeni :::plan üret.
+- Plan/görev oluşturunca mesajın SONUNA şu bloğu ekle (öğrenciye açıklama, sonra blok). Tarih YYYY-MM-DD, Türkiye.
+:::plan
+[{"date":"2026-09-01","title":"345 geometri üçgen 40 soru","subject":"Matematik","minutes":45}]
+:::
+- Blok dışında JSON gösterme. Görev yoksa blok yazma.
+- Sesli okunacak gibi yaz: kısa paragraflar, madde işaretleri.
+- Tıbbi/hukuki/kopya tavsiyesi yok.`;
 }
 
-export function welcomeMessage(profile: CoachProfile) {
+export function welcomeMessage(profile: CoachProfile, todayTasks: TodayTask[] = [], todayLabel = "") {
   const trackBit =
     profile.examType === "YKS" && profile.track
-      ? ` ${trackLabel(profile.track)} alanında`
+      ? ` ${trackLabel(profile.track)}`
       : "";
+  const targetBit = profile.target.trim()
+    ? `Hedef notun: ${profile.target}.`
+    : "Hedef okul şart değil; bugün nete bakalım.";
+  const todayBit =
+    todayTasks.length > 0
+      ? `\n\n${todayLabel} takviminde ${todayTasks.length} işin var:\n${todayTasks
+          .map((task) => `• ${task.done ? "Tamam: " : ""}${task.title} (${task.minutes} dk)`)
+          .join("\n")}\n\nHangisinden başlayalım, yoksa sırayı değiştirelim mi?`
+      : `\n\nTakvimde bugün için henüz iş yok. ${platformLabel(profile.platform)} üzerinden bugünü birlikte kuralım mı?`;
 
-  return `Merhaba ${profile.displayName}, ben Sınav Koçun. ${gradeLabel(profile.grade)}${trackBit} ${examLabel(profile.examType)} hazırlığındasın; günde ${profile.dailyHours} saat çalışmak istiyorsun.
-
-Hedefin: ${profile.target}
-Şu an zorlandığın yerler: ${profile.weakSubjects}
-
-Bugün bu süreyi nasıl bölelim, yoksa önce zayıf dersinden mi başlayalım?`;
+  return `Merhaba ${profile.displayName}. Ben Sınav Koçun — sesli de konuşabiliriz.\n${gradeLabel(profile.grade)}${trackBit}, ${examLabel(profile.examType)}, kaynak: ${platformLabel(profile.platform)}. Günde ${profile.dailyHours} saat.\n${targetBit} Zorlandığın yer: ${profile.weakSubjects}.${todayBit}`;
 }

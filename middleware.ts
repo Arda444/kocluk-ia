@@ -9,9 +9,10 @@ export default auth((req) => {
   const loggedIn = Boolean(req.auth);
 
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isLanding = pathname === "/";
   const isApi = pathname.startsWith("/api/");
 
-  if (isApi) {
+  if (isApi || isLanding) {
     return NextResponse.next();
   }
 

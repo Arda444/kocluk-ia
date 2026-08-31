@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Fraunces, Outfit } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin", "latin-ext"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin", "latin-ext"],
 });
 
 export const metadata: Metadata = {
   title: "Sınav Koçu",
-  description: "LGS ve YKS hazırlık koçu — ücretsiz çalışma planı ve sohbet.",
+  description: "LGS ve YKS için sesli çalışma koçu — plan, takvim, senin kaynağın.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="tr" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="tr" className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );
