@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CoachMarkdown } from "@/components/CoachMarkdown";
+import { stripPlanBlocks } from "@/lib/plan";
 import { primeSpeech, speakText, stopSpeaking } from "@/lib/speech";
 
 type ChatMessage = {
@@ -96,7 +97,7 @@ export function ChatWindow({
       }
 
       if (voiceOn && assembled.trim()) {
-        await speakText(assembled); // TTS after stream completes
+        await speakText(stripPlanBlocks(assembled));
       }
       router.refresh();
     } catch (err) {
