@@ -102,7 +102,10 @@ export function ChatWindow({
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bir hata oluştu.");
-      setMessages((current) => current.filter((message) => message.id !== assistantId));
+      setMessages((current) =>
+        current.filter((message) => message.id !== assistantId && message.id !== userMessage.id),
+      );
+      setInput(trimmed);
     } finally {
       setBusy(false);
     }

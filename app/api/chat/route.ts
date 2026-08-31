@@ -4,13 +4,61 @@ import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { extractPlanItems } from "@/lib/plan";
 import { istanbulToday } from "@/lib/dates";
-import { getGroqApiKey, groqErrorMessage, groqMissingMessage } from "@/lib/groq-env";
+import {
+  getGroqApiKey,
+  groqErrorMessage,
+  groqErrorText,
+  groqMissingMessage,
+  groqRetryWaitMs,
+  isGroqOversize,
+  isGroqRateLimit,
+} from "@/lib/groq-env";
 
 const PRIMARY_MODEL = "openai/gpt-oss-120b";
 const FALLBACK_MODEL = "openai/gpt-oss-20b";
+const COMPLETION_TOKENS = 1200;
+const COMPACT_TOKENS = 700;
+const HISTORY_LIMIT = 8;
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
+
+type ChatTurn = { role: "system" | "user" | "assistant"; content: string };
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createChatStream(groq: Groq, model: string, messages: ChatTurn[], maxTokens: number) {
+  return groq.chat.completions.create({
+    model,
+    messages,
+    stream: true,
+    temperature: 0.55,
+    max_tokens: maxTokens,
+    reasoning_effort: "low",
+  });
+}
+
+async function openChatStream(groq: Groq, messages: ChatTurn[]) {
+  let lastError: unknown;
+  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    for (const maxTokens of [COMPLETION_TOKENS, COMPACT_TOKENS]) {
+      try {
+        return await createChatStream(groq, model, messages, maxTokens);
+      } catch (error) {
+        lastError = error;
+        if (isGroqOversize(error) && maxTokens === COMPLETION_TOKENS) continue;
+        if (isGroqRateLimit(error) && /Used \d+/i.test(groqErrorText(error))) {
+          await sleep(groqRetryWaitMs(error));
+          continue;
+        }
+        break;
+      }
+    }
+  }
+  throw lastError;
+}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -42,7 +90,6 @@ export async function POST(request: Request) {
   let conversation;
   let profile;
   let todayTasks;
-  let userMessage;
   try {
     conversation = await prisma.conversation.findFirst({
       where: { id: conversationId, userId: session.user.id },
@@ -66,8 +113,40 @@ export async function POST(request: Request) {
       where: { userId: session.user.id, date: istanbulToday() },
       orderBy: { createdAt: "asc" },
     });
+  } catch (error) {
+    return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
+  }
 
-    userMessage = await prisma.message.create({
+  if (!conversation || !profile || !todayTasks) {
+    return Response.json({ error: "Sohbet yüklenemedi. Lütfen tekrar dene." }, { status: 503 });
+  }
+
+  const history = conversation.messages
+    .slice(-HISTORY_LIMIT)
+    .map((message) => ({
+      role: message.role as "user" | "assistant",
+      content:
+        message.role === "assistant" && message.content.length > 900
+          ? `${message.content.slice(0, 900)}…`
+          : message.content,
+    }));
+
+  const groq = new Groq({ apiKey: groqKey });
+  const messages: ChatTurn[] = [
+    { role: "system", content: buildSystemPrompt(profile, todayTasks, istanbulToday()) },
+    ...history,
+    { role: "user", content },
+  ];
+
+  let groqStream;
+  try {
+    groqStream = await openChatStream(groq, messages);
+  } catch (error) {
+    return Response.json({ error: groqErrorMessage(error) }, { status: 502 });
+  }
+
+  try {
+    await prisma.message.create({
       data: { conversationId, role: "user", content },
     });
 
@@ -85,40 +164,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
-  }
-
-  const history = [...conversation.messages, userMessage].map((message) => ({
-    role: message.role as "user" | "assistant",
-    content: message.content,
-  }));
-
-  const groq = new Groq({ apiKey: groqKey });
-  const messages = [
-    { role: "system" as const, content: buildSystemPrompt(profile, todayTasks, istanbulToday()) },
-    ...history,
-  ];
-
-  let groqStream;
-  try {
-    groqStream = await groq.chat.completions.create({
-      model: PRIMARY_MODEL,
-      messages,
-      stream: true,
-      temperature: 0.55,
-      max_tokens: 4096,
-    });
-  } catch (firstError) {
-    try {
-      groqStream = await groq.chat.completions.create({
-        model: FALLBACK_MODEL,
-        messages,
-        stream: true,
-        temperature: 0.55,
-        max_tokens: 4096,
-      });
-    } catch (secondError) {
-      return Response.json({ error: groqErrorMessage(secondError ?? firstError) }, { status: 502 });
-    }
   }
 
   const encoder = new TextEncoder();
