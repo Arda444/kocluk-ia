@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { extractPlanItems } from "@/lib/plan";
 import { istanbulToday } from "@/lib/dates";
+import { getGroqApiKey, groqMissingMessage } from "@/lib/groq-env";
 
 const PRIMARY_MODEL = "llama-3.3-70b-versatile";
 const FALLBACK_MODEL = "llama-3.1-8b-instant";
@@ -14,11 +15,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Giriş gerekli." }, { status: 401 });
   }
 
-  if (!process.env.GROQ_API_KEY) {
-    return Response.json(
-      { error: "GROQ_API_KEY tanımlı değil. .env dosyasına ücretsiz Groq anahtarını ekle." },
-      { status: 503 },
-    );
+  const groqKey = getGroqApiKey();
+  if (!groqKey) {
+    return Response.json({ error: groqMissingMessage() }, { status: 503 });
   }
 
   const body = (await request.json()) as {
@@ -73,7 +72,7 @@ export async function POST(request: Request) {
     content: message.content,
   }));
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const groq = new Groq({ apiKey: groqKey });
   const messages = [
     { role: "system" as const, content: buildSystemPrompt(profile, todayTasks, istanbulToday()) },
     ...history,

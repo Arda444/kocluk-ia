@@ -7,7 +7,8 @@ import { auth, signIn, signOut } from "@/auth";
 import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
 import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS } from "@/lib/labels";
 import { welcomeMessage } from "@/lib/prompt";
-import { istanbulNowLabel, istanbulToday } from "@/lib/dates";
+import { istanbulToday } from "@/lib/dates";
+import { normalizePlatform } from "@/lib/labels";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
@@ -190,7 +191,7 @@ export async function saveProfileAction(
       examType: parsed.data.examType,
       grade: parsed.data.grade,
       track,
-      platform: parsed.data.platform,
+      platform: normalizePlatform(parsed.data.platform),
       platformNote,
       dailyHours: parsed.data.dailyHours,
       target: parsed.data.target ?? "",
@@ -201,7 +202,7 @@ export async function saveProfileAction(
       examType: parsed.data.examType,
       grade: parsed.data.grade,
       track,
-      platform: parsed.data.platform,
+      platform: normalizePlatform(parsed.data.platform),
       platformNote,
       dailyHours: parsed.data.dailyHours,
       target: parsed.data.target ?? "",
@@ -243,7 +244,7 @@ export async function createConversationAction() {
       messages: {
         create: {
           role: "assistant",
-          content: welcomeMessage(profile, todayTasks, istanbulNowLabel()),
+        content: welcomeMessage(profile, todayTasks),
         },
       },
     },
@@ -251,6 +252,17 @@ export async function createConversationAction() {
 
   revalidatePath("/chat");
   redirect(`/chat/${conversation.id}`);
+}
+
+export async function deleteConversationAction(conversationId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  await prisma.conversation.deleteMany({
+    where: { id: conversationId, userId: session.user.id },
+  });
+  revalidatePath("/chat");
+  revalidatePath("/calendar");
+  redirect("/chat");
 }
 
 export async function createTaskAction(formData: FormData): Promise<void> {

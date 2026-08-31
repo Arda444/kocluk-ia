@@ -32,14 +32,9 @@ export const PLATFORMS = [
     hint: "Video + kamp + uygulama",
   },
   {
-    value: "yayin345",
-    label: "345",
-    hint: "Soru bankası ve deneme",
-  },
-  {
-    value: "allstar",
-    label: "All Star",
-    hint: "Kaynak ve deneme seti",
+    value: "kaynak345",
+    label: "345 / All Star",
+    hint: "Soru bankası ve deneme — tek kaynak",
   },
   {
     value: "raunt",
@@ -71,9 +66,14 @@ export function trackLabel(value: string | null | undefined) {
   return TRACKS.find((item) => item.value === value)?.label ?? value;
 }
 
+export function normalizePlatform(value: string | null | undefined) {
+  if (value === "allstar" || value === "yayin345") return "kaynak345";
+  return value || "youtube";
+}
+
 export function platformLabel(value: string | null | undefined) {
-  if (!value) return "belirtilmedi";
-  return PLATFORMS.find((item) => item.value === value)?.label ?? value;
+  const key = normalizePlatform(value);
+  return PLATFORMS.find((item) => item.value === key)?.label ?? key;
 }
 
 export const PLATFORM_PLAYBOOK: Record<string, string> = {
@@ -90,19 +90,12 @@ export const PLATFORM_PLAYBOOK: Record<string, string> = {
 - Uygulamadaki ödev/deneme/kamp kutularını günlük göreve çevir: bugün X videosu + Y soru.
 - Takıldığın videoyu 2 kez izle, 3.de hoca/forum değil soru bankasına geç.
 - Kamp dönemlerinde Doping kamp PDF/akışına sadık kal, ekstra kaynak ekleme.`,
-  yayin345: `345 yayınları kullanıyor. Yönlendirme kuralları:
-- 345 soru bankası = asıl iş. Konu anlatımı kısa tut, soru çözümü merkeze al.
-- Sıra: konu tarama testi → 345 ilgili ünite → yanlışlar defteri → 345 deneme.
-- "Bitirme yarışı" yapma: günde net sayfa/soru hedefi (ör. 40-60 soru) koy.
-- 345 video çözüm varsa yalnızca yanlış/boş sorularda aç.
-- Branş denemelerini haftalık yerleştir; TYT genel denemeyi ayrı gün koy.
-- Aynı üniteyi 345 + başka bankayla şişirme; önce 345 bitsin.`,
-  allstar: `All Star kaynaklarıyla hazırlanıyor. Yönlendirme kuralları:
-- All Star setinin kendi konu-deneme dengesini bozma.
-- Günlük: All Star ünite soruları + yanlış analizi.
-- Deneme günlerinde All Star deneme çöz, hemen sonra net-branş tablosu çıkar.
-- All Star'da zor madde (yıldızlı/seçmeli) ayrı oturum olsun, moral bozmasın diye ilk turda atlanabilir.
-- Eksik konuda kısa video (Doping/YouTube 15 dk) sonra All Star'a dön. Kaynak değişme.`,
+  kaynak345: `345 ve All Star tek kaynak seti. Yönlendirme kuralları:
+- 345 soru bankası + All Star deneme/ünite aynı programın parçası; aralarında kaynak değiştirme yarışı yok.
+- Sıra: kısa tarama → 345/All Star ilgili ünite soruları → yanlış defteri → All Star veya 345 deneme.
+- Günde net soru hedefi (ör. 40-60). Video çözümü yalnız yanlış/boşta aç.
+- Branş denemesi haftalık; TYT genel deneme ayrı gün.
+- Aynı üniteyi üçüncü bir bankayla şişirme.`,
   raunt: `Raunt kullanıyor. Yönlendirme kuralları:
 - Raunt canlı ders + ödev + deneme takvimini "asıl okul" say. Çakışan ekstra kaynak ekleme.
 - Canlı derse 5 dk kala hazır ol, ders sonrası aynı gün Raunt ödevini bitir.

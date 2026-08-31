@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { deleteConversationAction } from "@/app/actions";
 
 export function ConversationList({
   conversations,
@@ -19,15 +20,30 @@ export function ConversationList({
       {conversations.map((conversation) => {
         const active = pathname === `/chat/${conversation.id}`;
         return (
-          <Link
+          <div
             key={conversation.id}
-            href={`/chat/${conversation.id}`}
-            className={`mb-1 block rounded-xl px-3 py-2 text-sm transition ${
-              active ? "bg-accent/15 text-accent" : "text-foreground/90 hover:bg-white/5"
+            className={`mb-1 flex items-center gap-1 rounded-xl ${
+              active ? "bg-accent/15" : "hover:bg-white/5"
             }`}
           >
-            <span className="line-clamp-2">{conversation.title}</span>
-          </Link>
+            <Link
+              href={`/chat/${conversation.id}`}
+              className={`min-w-0 flex-1 px-3 py-2 text-sm ${
+                active ? "text-accent" : "text-foreground/90"
+              }`}
+            >
+              <span className="line-clamp-2">{conversation.title}</span>
+            </Link>
+            <form action={deleteConversationAction.bind(null, conversation.id)}>
+              <button
+                type="submit"
+                aria-label="Sohbeti sil"
+                className="mr-1 rounded-lg px-2 py-1 text-xs text-muted hover:bg-white/10 hover:text-coral"
+              >
+                Sil
+              </button>
+            </form>
+          </div>
         );
       })}
     </>

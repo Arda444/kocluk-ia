@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { saveProfileAction, type ActionState } from "@/app/actions";
-import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS } from "@/lib/labels";
+import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS, normalizePlatform } from "@/lib/labels";
 
 type ProfileSeed = {
   displayName: string;
@@ -37,13 +37,13 @@ export function OnboardingWizard({
   initial?: ProfileSeed;
 }) {
   const [examType, setExamType] = useState(initial?.examType ?? "YKS");
-  const [platform, setPlatform] = useState(initial?.platform ?? "youtube");
+  const [platform, setPlatform] = useState(normalizePlatform(initial?.platform ?? "youtube"));
   const [values, setValues] = useState({
     displayName: initial?.displayName || defaultName,
     examType: initial?.examType ?? "YKS",
     grade: initial?.grade ?? "12",
     track: initial?.track ?? "sayisal",
-    platform: initial?.platform ?? "youtube",
+    platform: normalizePlatform(initial?.platform ?? "youtube"),
     platformNote: initial?.platformNote ?? "",
     dailyHours: String(initial?.dailyHours ?? 3),
     target: initial?.target ?? "",

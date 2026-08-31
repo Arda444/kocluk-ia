@@ -1,6 +1,7 @@
 import {
   examLabel,
   gradeLabel,
+  normalizePlatform,
   platformLabel,
   trackLabel,
   PLATFORM_PLAYBOOK,
@@ -58,12 +59,13 @@ export function buildSystemPrompt(profile: CoachProfile, todayTasks: TodayTask[]
 - ${target}
 - Zayıf ders(ler): ${profile.weakSubjects}
 
-${PLATFORM_PLAYBOOK[profile.platform] ?? PLATFORM_PLAYBOOK.other}
+${PLATFORM_PLAYBOOK[normalizePlatform(profile.platform)] ?? PLATFORM_PLAYBOOK.other}
 
 ${todayBlock}
 
 Kurallar:
 - Türkçe konuş. Yargılama. Koçluk yap: ne, hangi sırayla, kaç dakika, hangi kaynaktan.
+- Sınıf, alan, anket cevaplarını sohbette tekrar etme. Zaten profilde var. "Merhaba 12. sınıf" gibi açılış yasak.
 - Uzun konu anlatımı yazma. Anlatım platform videolarına bırak.
 - Günlük süreye sadık kal. 40+10 bloklar öner.
 - Öğrenci takvimdeki görevi değiştirmek, silmek, ertelemek isterse kabul et ve yeni :::plan üret.
@@ -76,20 +78,10 @@ Kurallar:
 - Tıbbi/hukuki/kopya tavsiyesi yok.`;
 }
 
-export function welcomeMessage(profile: CoachProfile, todayTasks: TodayTask[] = [], todayLabel = "") {
-  const trackBit =
-    profile.examType === "YKS" && profile.track
-      ? ` ${trackLabel(profile.track)}`
-      : "";
-  const targetBit = profile.target.trim()
-    ? `Hedef notun: ${profile.target}.`
-    : "Hedef okul şart değil; bugün nete bakalım.";
-  const todayBit =
-    todayTasks.length > 0
-      ? `\n\n${todayLabel} takviminde ${todayTasks.length} işin var:\n${todayTasks
-          .map((task) => `• ${task.done ? "Tamam: " : ""}${task.title} (${task.minutes} dk)`)
-          .join("\n")}\n\nHangisinden başlayalım, yoksa sırayı değiştirelim mi?`
-      : `\n\nTakvimde bugün için henüz iş yok. ${platformLabel(profile.platform)} üzerinden bugünü birlikte kuralım mı?`;
-
-  return `Merhaba ${profile.displayName}. Ben Sınav Koçun — sesli de konuşabiliriz.\n${gradeLabel(profile.grade)}${trackBit}, ${examLabel(profile.examType)}, kaynak: ${platformLabel(profile.platform)}. Günde ${profile.dailyHours} saat.\n${targetBit} Zorlandığın yer: ${profile.weakSubjects}.${todayBit}`;
+export function welcomeMessage(_profile?: CoachProfile, todayTasks: TodayTask[] = []) {
+  const open = todayTasks.filter((task) => !task.done);
+  if (open.length > 0) {
+    return "Merhaba. Bugünün işleri takvimde duruyor — hangisinden başlayalım?";
+  }
+  return "Merhaba. Bugün ne çalışmak istiyorsun?";
 }
