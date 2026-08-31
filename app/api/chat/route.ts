@@ -6,8 +6,8 @@ import { extractPlanItems } from "@/lib/plan";
 import { istanbulToday } from "@/lib/dates";
 import { getGroqApiKey, groqErrorMessage, groqMissingMessage } from "@/lib/groq-env";
 
-const PRIMARY_MODEL = "llama-3.3-70b-versatile";
-const FALLBACK_MODEL = "llama-3.1-8b-instant";
+const PRIMARY_MODEL = "openai/gpt-oss-120b";
+const FALLBACK_MODEL = "openai/gpt-oss-20b";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";

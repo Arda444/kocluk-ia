@@ -15,8 +15,11 @@ export function groqMissingMessage() {
 export function groqErrorMessage(error: unknown) {
   const record = error as { message?: string; error?: { message?: string } };
   const message = record?.error?.message || record?.message || String(error);
-  if (/api key|invalid|unauthorized|401/i.test(message)) {
+  if (/invalid api key|incorrect api key|unauthorized|401|forbidden/i.test(message)) {
     return "Groq anahtarı geçersiz. Vercel’deki GROQ_API_KEY değerini kontrol et ve Redeploy yap.";
+  }
+  if (/does not exist|deprecat|model/i.test(message) && /not exist|access|deprecat/i.test(message)) {
+    return "Groq modeli değişmiş. Siteyi yenile; hâlâ olursa Redeploy et.";
   }
   if (/rate|429|quota|limit/i.test(message)) {
     return "Groq limiti doldu. Bir dakika sonra tekrar dene.";
