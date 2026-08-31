@@ -26,16 +26,16 @@ Windows’ta Turso CLI yok; veritabanını tarayıcıdan oluştur.
 
 1. [app.turso.tech](https://app.turso.tech) — GitHub (Arda444) ile giriş, veritabanı oluştur, URL + token kopyala
 2. [Vercel New Project](https://vercel.com/new/import?s=https://github.com/Arda444/kocluk-ia) — GitHub **Arda444** ile giriş, `kocluk-ia` reposunu import et
-3. Vercel Environment Variables:
+3. Vercel → Project → Settings → Environment Variables (Production + Preview):
 
-| Değişken | Değer |
-| --- | --- |
-| `DATABASE_URL` | `file:./dev.db` (yalnız Prisma generate) |
-| `TURSO_DATABASE_URL` | `libsql://...turso.io` |
-| `TURSO_AUTH_TOKEN` | Turso token |
-| `GROQ_API_KEY` | Groq anahtarı |
-| `AUTH_SECRET` | uzun rastgele string |
-| `AUTH_URL` | `https://<proje>.vercel.app` (ilk deploy sonrası güncelle) |
+- `AUTH_SECRET` — rastgele 32+ karakter (`openssl rand -hex 32`)
+- `AUTH_URL` — `https://kocluk-ia.vercel.app`
+- `AUTH_TRUST_HOST` — `true`
+- `DATABASE_URL` — `file:./dev.db` (yalnız build)
+- `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — kayıtların kalması için zorunlu
+- `GROQ_API_KEY` — koç cevapları için
+
+`AUTH_SECRET` yoksa giriş `/api/auth/callback/credentials` adresinde "server configuration" JSON hatası verir. Değişkenleri kaydettikten sonra **Redeploy**.
 
 4. Deploy sonrası kendi makinede şemayı Turso’ya bas:
 
