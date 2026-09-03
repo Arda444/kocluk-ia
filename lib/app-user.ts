@@ -41,14 +41,24 @@ export async function getAppUser() {
 
   let user = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
   if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: LOCAL_EMAIL,
-        name: STUDENT_NAME,
-        passwordHash: "local-no-login",
-      },
-    });
-  } else if (isPlaceholderName(user.name)) {
+    try {
+      user = await prisma.user.create({
+        data: {
+          email: LOCAL_EMAIL,
+          name: STUDENT_NAME,
+          passwordHash: "local-no-login",
+        },
+      });
+    } catch {
+      user =
+        (await prisma.user.findUnique({ where: { email: LOCAL_EMAIL } })) ??
+        (await prisma.user.findFirst({ orderBy: { createdAt: "asc" } }));
+    }
+  }
+  if (!user) {
+    throw new Error("Kullanıcı bulunamadı");
+  }
+  if (isPlaceholderName(user.name)) {
     user = await prisma.user.update({
       where: { id: user.id },
       data: { name: STUDENT_NAME },

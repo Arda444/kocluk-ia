@@ -29,6 +29,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}>
