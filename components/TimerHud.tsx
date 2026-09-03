@@ -55,7 +55,7 @@ export function TimerHud() {
   }
 
   return (
-    <div className="fixed right-3 bottom-[8.25rem] z-40 w-[min(100%-1.5rem,19rem)] rounded-2xl border border-white/15 bg-[#12163a]/95 p-3 shadow-2xl backdrop-blur md:right-4 md:bottom-4">
+    <div className="fixed right-3 bottom-[5.25rem] z-40 w-[min(100%-1.5rem,19rem)] rounded-2xl border border-white/15 bg-[#12163a]/95 p-3 shadow-2xl backdrop-blur md:right-4 md:bottom-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] tracking-[0.16em] text-accent">SÜRE</p>
