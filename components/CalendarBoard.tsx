@@ -232,7 +232,7 @@ export function CalendarBoard({ initialTasks }: { initialTasks: Task[] }) {
           </div>
         </section>
 
-        <aside className="flex flex-col rounded-[1.75rem] border border-white/10 bg-[#12163a]/90 p-4 md:sticky md:top-4 md:max-h-[calc(100svh-7rem)]">
+        <aside className="flex flex-col rounded-[1.75rem] border border-white/10 bg-[#12163a]/90 p-4">
           <p className="text-xs capitalize text-muted">{formatDayLong(selected)}</p>
           <h2 className="font-serif text-2xl">{selectedSunday ? "Pazar tatil" : "Günün planı"}</h2>
           <p className="mt-1 text-sm text-muted">
@@ -255,7 +255,7 @@ export function CalendarBoard({ initialTasks }: { initialTasks: Task[] }) {
             </p>
           ) : null}
 
-          <ul className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto">
+          <ul className="mt-4 space-y-2">
             {dayTasks.length === 0 ? (
               <li className="rounded-2xl border border-dashed border-white/15 px-4 py-10 text-center text-sm text-muted">
                 {selectedSunday ? "Dinlen. İstersen 20 paragraf." : "Bu günde plan yok."}
@@ -278,21 +278,32 @@ export function CalendarBoard({ initialTasks }: { initialTasks: Task[] }) {
                         />
                       </form>
                       <div className="min-w-0 flex-1">
-                        <p className={`text-sm ${task.done ? "text-muted line-through" : ""}`}>
-                          {shortTitle(task.title)}
-                        </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                          <span className={`h-2 w-2 rounded-full ${subjectDot(task.subject)}`} />
-                          {task.subject}
-                          {" · "}
-                          <ElapsedLabel
-                            taskId={task.id}
-                            elapsedSeconds={task.elapsedSeconds ?? 0}
-                            targetMinutes={task.minutes}
-                          />
-                        </p>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className={`text-sm font-medium ${task.done ? "text-muted line-through" : ""}`}>
+                              {shortTitle(task.title)}
+                            </p>
+                            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                              <span className={`h-2 w-2 rounded-full ${subjectDot(task.subject)}`} />
+                              {task.subject}
+                              {" · "}
+                              <ElapsedLabel
+                                taskId={task.id}
+                                elapsedSeconds={task.elapsedSeconds ?? 0}
+                                targetMinutes={task.minutes}
+                              />
+                            </p>
+                          </div>
+                          <p className="shrink-0 text-right">
+                            <span className="block text-lg font-semibold leading-none tabular-nums">
+                              {(task.correct ?? 0) + (task.wrong ?? 0) + (task.blank ?? 0)}
+                            </span>
+                            <span className="text-[10px] text-muted">/ {task.targetQuestions || 0} soru</span>
+                          </p>
+                        </div>
                         <TaskScoreForm
                           showNote={false}
+                          showSolved={false}
                           task={{
                             id: task.id,
                             title: task.title,

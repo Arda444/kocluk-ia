@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { saveProfileAction, type ActionState } from "@/app/actions";
 import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS, normalizePlatform } from "@/lib/labels";
-import { STUDENT_NAME } from "@/lib/student";
+import { studentDisplayName, STUDENT_NAME } from "@/lib/student";
 
 type ProfileSeed = {
   displayName: string;
@@ -40,7 +40,7 @@ export function OnboardingWizard({
   const [examType, setExamType] = useState(initial?.examType ?? "YKS");
   const [platform, setPlatform] = useState(normalizePlatform(initial?.platform ?? "youtube"));
   const [values, setValues] = useState({
-    displayName: initial?.displayName || defaultName || STUDENT_NAME,
+    displayName: studentDisplayName(initial?.displayName || defaultName),
     examType: initial?.examType ?? "YKS",
     grade: initial?.grade ?? "12",
     track: initial?.track ?? "sayisal",

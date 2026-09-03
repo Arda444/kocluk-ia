@@ -1,29 +1,32 @@
 export const SCORE = {
   correct: {
     label: "Doğru",
-    input:
-      "h-8 w-12 rounded-lg border border-correct/50 bg-correct/10 px-1 text-center text-sm text-correct placeholder:text-correct/60",
-    stack:
-      "mt-1 h-11 w-full min-w-0 rounded-xl border border-correct/50 bg-correct/10 px-2 text-center text-base text-correct placeholder:text-correct/60",
+    letter: "D",
     chip: "text-correct",
     bar: "bg-correct",
+    shell: "border-correct/40 bg-correct/10",
+    letterClass: "text-correct",
+    input:
+      "score-input h-9 w-11 rounded-md bg-black/30 text-center text-base font-semibold tabular-nums text-correct outline-none placeholder:text-correct/50",
   },
   wrong: {
     label: "Yanlış",
-    input:
-      "h-8 w-12 rounded-lg border border-wrong/50 bg-wrong/10 px-1 text-center text-sm text-wrong placeholder:text-wrong/60",
-    stack:
-      "mt-1 h-11 w-full min-w-0 rounded-xl border border-wrong/50 bg-wrong/10 px-2 text-center text-base text-wrong placeholder:text-wrong/60",
+    letter: "Y",
     chip: "text-wrong",
     bar: "bg-wrong",
+    shell: "border-wrong/40 bg-wrong/10",
+    letterClass: "text-wrong",
+    input:
+      "score-input h-9 w-11 rounded-md bg-black/30 text-center text-base font-semibold tabular-nums text-wrong outline-none placeholder:text-wrong/50",
   },
   blank: {
     label: "Boş",
-    input:
-      "h-8 w-12 rounded-lg border border-blank/50 bg-blank/10 px-1 text-center text-sm text-blank placeholder:text-blank/70",
-    stack:
-      "mt-1 h-11 w-full min-w-0 rounded-xl border border-blank/50 bg-blank/10 px-2 text-center text-base text-blank placeholder:text-blank/70",
+    letter: "B",
     chip: "text-blank",
     bar: "bg-blank",
+    shell: "border-blank/40 bg-blank/10",
+    letterClass: "text-blank",
+    input:
+      "score-input h-9 w-11 rounded-md bg-black/30 text-center text-base font-semibold tabular-nums text-blank outline-none placeholder:text-blank/60",
   },
 } as const;

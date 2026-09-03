@@ -1,6 +1,7 @@
 import { getAppUser } from "@/lib/app-user";
 import { prisma } from "@/lib/prisma";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { studentDisplayName } from "@/lib/student";
 
 export default async function OnboardingPage() {
   const user = await getAppUser();
@@ -11,11 +12,11 @@ export default async function OnboardingPage() {
   return (
     <main className="min-h-full">
       <OnboardingWizard
-        defaultName={user.name ?? ""}
+        defaultName={studentDisplayName(user.name)}
         initial={
           profile
             ? {
-                displayName: profile.displayName,
+                displayName: studentDisplayName(profile.displayName),
                 examType: profile.examType,
                 grade: profile.grade,
                 track: profile.track,

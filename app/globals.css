@@ -31,6 +31,7 @@
 html,
 body {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -52,6 +53,18 @@ select option {
   font-family: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent;
+}
+
 @keyframes pulse-ring {
   0% {
     transform: scale(0.85);
@@ -66,8 +79,18 @@ select option {
   }
 }
 
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
 @media (max-width: 767px) {
-  input,
+  input:not(.score-input),
   textarea,
   select {
     font-size: 16px !important;

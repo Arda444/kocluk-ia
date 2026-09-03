@@ -16,18 +16,18 @@ export function StartTimerButton({ task }: { task: TimerTask }) {
   }
 
   return (
-    <span className="inline-flex w-full overflow-hidden rounded-xl border border-white/15 sm:w-auto">
+    <span className="inline-flex shrink-0 overflow-hidden rounded-lg border border-white/15">
       <button
         type="button"
         onClick={() => begin(true)}
-        className={`h-10 flex-1 px-3 text-xs font-semibold sm:h-8 sm:flex-none ${isThis ? "bg-accent text-white" : "text-muted hover:text-foreground"}`}
+        className={`h-9 px-3 text-xs font-semibold ${isThis ? "bg-accent text-white" : "text-muted hover:text-foreground"}`}
       >
         {isThis && running ? "Tam ekran" : "Süre tut"}
       </button>
       <button
         type="button"
         onClick={() => begin(false)}
-        className="h-10 border-l border-white/15 px-3 text-xs text-muted hover:text-foreground sm:h-8"
+        className="h-9 border-l border-white/15 px-2.5 text-xs text-muted hover:text-foreground"
         title="Küçük kronometre"
       >
         Ufak

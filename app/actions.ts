@@ -256,17 +256,18 @@ const scoreSchema = z.object({
   correct: z.coerce.number().int().min(0).max(200),
   wrong: z.coerce.number().int().min(0).max(200),
   blank: z.coerce.number().int().min(0).max(200),
-  note: z.string().trim().max(300).optional(),
+  note: z.string().optional(),
 });
 
 export async function logTaskResultAction(formData: FormData): Promise<void> {
   const user = await getAppUser();
+  const notePresent = formData.has("note");
   const parsed = scoreSchema.safeParse({
     id: formData.get("id"),
     correct: formData.get("correct") || 0,
     wrong: formData.get("wrong") || 0,
     blank: formData.get("blank") || 0,
-    note: formData.get("note") || undefined,
+    note: notePresent ? String(formData.get("note") ?? "") : undefined,
   });
   if (!parsed.success) return;
 
@@ -282,7 +283,7 @@ export async function logTaskResultAction(formData: FormData): Promise<void> {
       correct: parsed.data.correct,
       wrong: parsed.data.wrong,
       blank: parsed.data.blank,
-      note: parsed.data.note ?? task.note,
+      note: notePresent ? (parsed.data.note ?? "").trim().slice(0, 300) : task.note,
       done: scored ? true : task.done,
     },
   });

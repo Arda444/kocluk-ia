@@ -6,7 +6,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { SideNav } from "@/components/SideNav";
 import { examLabel, gradeLabel, platformLabel, trackLabel } from "@/lib/labels";
 import { istanbulToday } from "@/lib/dates";
-import { STUDENT_NAME } from "@/lib/student";
+import { studentDisplayName } from "@/lib/student";
 
 export async function AppShell({ children }: { children: ReactNode }) {
   const user = await getAppUser();
@@ -22,10 +22,10 @@ export async function AppShell({ children }: { children: ReactNode }) {
     }),
   ]);
 
-  const name = profile?.displayName || user.name || STUDENT_NAME;
+  const name = studentDisplayName(profile?.displayName || user.name);
 
   return (
-    <div className="flex h-svh min-h-0 flex-col md:flex-row">
+    <div className="flex h-svh min-h-0 flex-col overflow-hidden md:flex-row">
       <aside className="hidden w-[280px] shrink-0 flex-col border-r border-white/10 bg-[#0a102c]/80 md:flex">
         <div className="border-b border-white/10 p-4">
           <Link href="/program" className="text-xs font-semibold tracking-[0.18em] text-accent">
@@ -51,7 +51,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="border-b border-white/10 px-4 py-3 md:hidden">
           <div className="flex items-center justify-between">
             <Link href="/program" className="text-[10px] font-semibold tracking-[0.16em] text-accent">
@@ -60,7 +60,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
             <span className="truncate text-xs text-muted">{name}</span>
           </div>
         </header>
-        <section className="flex min-h-0 flex-1 flex-col">{children}</section>
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</section>
         <MobileNav todayCount={todayCount} />
       </div>
     </div>

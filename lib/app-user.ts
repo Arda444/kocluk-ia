@@ -1,13 +1,12 @@
 import { prisma, ensureSchema } from "@/lib/prisma";
 import { ensureAllStarProgram } from "@/lib/ensure-program";
-import { STUDENT_NAME } from "@/lib/student";
+import {
+  STUDENT_NAME,
+  isPlaceholderName,
+  rewritePlaceholderText,
+} from "@/lib/student";
 
 const LOCAL_EMAIL = "local@allstar.tyt";
-
-function isPlaceholderName(name?: string | null) {
-  const value = name?.trim() ?? "";
-  return !value || value === "Öğrenci";
-}
 
 async function ensureProfile(userId: string, displayName: string) {
   const found = await prisma.profile.findUnique({ where: { userId } });
@@ -34,6 +33,23 @@ async function ensureProfile(userId: string, displayName: string) {
       weakSubjects: "Matematik",
     },
   });
+}
+
+async function rewriteE2eMentions(userId: string) {
+  const messages = await prisma.message.findMany({
+    where: { conversation: { userId }, content: { contains: "E2E" } },
+    select: { id: true, content: true },
+  });
+  await Promise.all(
+    messages.map((message) => {
+      const content = rewritePlaceholderText(message.content);
+      if (content === message.content) return Promise.resolve(message);
+      return prisma.message.update({
+        where: { id: message.id },
+        data: { content },
+      });
+    }),
+  );
 }
 
 export async function getAppUser() {
@@ -66,6 +82,7 @@ export async function getAppUser() {
   }
 
   await ensureProfile(user.id, user.name || STUDENT_NAME);
+  await rewriteE2eMentions(user.id);
   await ensureAllStarProgram(user.id);
   return user;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { logTaskResultAction } from "@/app/actions";
 import { StartTimerButton } from "@/components/StartTimerButton";
 import { tytNet } from "@/lib/allstar-tyt";
@@ -18,96 +19,144 @@ export type ScoreFormTask = {
   note?: string | null;
 };
 
+function scoreField(value: number | null | undefined) {
+  return value ? String(value) : "";
+}
+
 export function TaskScoreForm({
   task,
   showNote = true,
+  showSolved = true,
 }: {
   task: ScoreFormTask;
   showNote?: boolean;
+  showSolved?: boolean;
 }) {
-  const correct = task.correct ?? 0;
-  const wrong = task.wrong ?? 0;
-  const blank = task.blank ?? 0;
-  const solved = correct + wrong + blank;
+  const [correct, setCorrect] = useState(scoreField(task.correct));
+  const [wrong, setWrong] = useState(scoreField(task.wrong));
+  const [blank, setBlank] = useState(scoreField(task.blank));
+  const [note, setNote] = useState(task.note ?? "");
+
+  useEffect(() => {
+    setCorrect(scoreField(task.correct));
+    setWrong(scoreField(task.wrong));
+    setBlank(scoreField(task.blank));
+    setNote(task.note ?? "");
+  }, [task.id]);
+
+  const correctN = Number(correct) || 0;
+  const wrongN = Number(wrong) || 0;
+  const blankN = Number(blank) || 0;
+  const solved = correctN + wrongN + blankN;
   const target = task.targetQuestions ?? 0;
-  const net = solved > 0 ? tytNet(correct, wrong) : null;
+  const net = solved > 0 ? tytNet(correctN, wrongN) : null;
 
   return (
-    <form action={logTaskResultAction} className="mt-3 space-y-3">
+    <form
+      action={logTaskResultAction}
+      onReset={(event) => event.preventDefault()}
+      className="mt-3 space-y-2.5"
+    >
       <input type="hidden" name="id" value={task.id} />
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
-        <p>
-          <span className="font-semibold text-foreground">{solved} çözülen</span>
-          {target ? <span className="text-muted"> / {target} hedef</span> : null}
+      {showSolved ? (
+        <p className="text-xs text-muted">
+          <span className="font-semibold text-foreground">{solved}</span>
+          {target ? ` / ${target} soru` : " çözülen"}
+          {net != null ? <span className="text-accent"> · net {net}</span> : null}
         </p>
-        {net != null ? <p className="font-medium text-accent">net {net}</p> : null}
+      ) : net != null ? (
+        <p className="text-xs font-medium text-accent">net {net}</p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <ScoreChip
+          name="correct"
+          hint={SCORE.correct.label}
+          value={correct}
+          onChange={setCorrect}
+          shell={SCORE.correct.shell}
+          letterClass={SCORE.correct.letterClass}
+          inputClass={SCORE.correct.input}
+        />
+        <ScoreChip
+          name="wrong"
+          hint={SCORE.wrong.label}
+          value={wrong}
+          onChange={setWrong}
+          shell={SCORE.wrong.shell}
+          letterClass={SCORE.wrong.letterClass}
+          inputClass={SCORE.wrong.input}
+        />
+        <ScoreChip
+          name="blank"
+          hint={SCORE.blank.label}
+          value={blank}
+          onChange={setBlank}
+          shell={SCORE.blank.shell}
+          letterClass={SCORE.blank.letterClass}
+          inputClass={SCORE.blank.input}
+        />
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <label className="text-[11px] font-medium text-correct">
-          Doğru
-          <input
-            name="correct"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            defaultValue={correct || ""}
-            placeholder="0"
-            aria-label="Doğru"
-            className={SCORE.correct.stack}
-          />
-        </label>
-        <label className="text-[11px] font-medium text-wrong">
-          Yanlış
-          <input
-            name="wrong"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            defaultValue={wrong || ""}
-            placeholder="0"
-            aria-label="Yanlış"
-            className={SCORE.wrong.stack}
-          />
-        </label>
-        <label className="text-[11px] font-medium text-blank">
-          Boş
-          <input
-            name="blank"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            defaultValue={blank || ""}
-            placeholder="0"
-            aria-label="Boş"
-            className={SCORE.blank.stack}
-          />
-        </label>
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex flex-wrap items-center gap-2">
         {showNote ? (
           <input
             name="note"
-            defaultValue={task.note ?? ""}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
             placeholder="not"
-            className="h-10 min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0a102c] px-3 text-sm"
+            className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-[#070b1c] px-3 text-sm"
           />
         ) : null}
         <button
           type="submit"
-          className="h-10 shrink-0 rounded-xl bg-accent px-4 text-sm font-semibold text-white sm:px-3 sm:text-xs"
+          className="h-9 shrink-0 rounded-lg bg-accent px-3 text-sm font-semibold text-white"
         >
           İşle
         </button>
+        <StartTimerButton
+          task={{
+            id: task.id,
+            title: task.title,
+            subject: task.subject,
+            targetMinutes: task.minutes,
+            elapsedSeconds: task.elapsedSeconds,
+          }}
+        />
       </div>
-      <StartTimerButton
-        task={{
-          id: task.id,
-          title: task.title,
-          subject: task.subject,
-          targetMinutes: task.minutes,
-          elapsedSeconds: task.elapsedSeconds,
-        }}
-      />
     </form>
+  );
+}
+
+function ScoreChip({
+  name,
+  hint,
+  value,
+  onChange,
+  shell,
+  letterClass,
+  inputClass,
+}: {
+  name: string;
+  hint: string;
+  value: string;
+  onChange: (value: string) => void;
+  shell: string;
+  letterClass: string;
+  inputClass: string;
+}) {
+  return (
+    <label className={`inline-flex w-fit shrink-0 items-center gap-2 rounded-xl border py-1 pl-2.5 pr-1 ${shell}`}>
+      <span className={`text-sm font-semibold ${letterClass}`}>{hint}</span>
+      <input
+        name={name}
+        type="number"
+        min={0}
+        inputMode="numeric"
+        value={value}
+        placeholder="0"
+        aria-label={hint}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClass}
+      />
+    </label>
   );
 }

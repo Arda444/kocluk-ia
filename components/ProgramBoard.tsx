@@ -161,22 +161,26 @@ export function ProgramBoard({
                 </h2>
                 <p className="text-xs text-muted">{formatDayLong(date)}</p>
               </div>
-              <p className="mb-3 text-xs leading-5 text-muted">
-                <span className="font-medium text-foreground">
-                  {totals.solved} çözülen
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium">
+                  {totals.solved}/{totals.target || 0} soru
                 </span>
-                {totals.target ? ` / ${totals.target} hedef` : ""}
-                {" · "}
-                <span className="text-correct">{totals.correct} D</span>
-                {" · "}
-                <span className="text-wrong">{totals.wrong} Y</span>
-                {" · "}
-                <span className="text-blank">{totals.blank} B</span>
-                {" · net "}
-                {totals.net}
-                {" · "}
-                {formatClock(totals.elapsed)} / {totals.minutes} dk
-              </p>
+                <span className="rounded-full bg-correct/15 px-2.5 py-1 text-[11px] font-medium text-correct">
+                  {totals.correct} D
+                </span>
+                <span className="rounded-full bg-wrong/15 px-2.5 py-1 text-[11px] font-medium text-wrong">
+                  {totals.wrong} Y
+                </span>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-blank">
+                  {totals.blank} B
+                </span>
+                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-medium text-accent">
+                  net {totals.net}
+                </span>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-muted">
+                  {formatClock(totals.elapsed)} / {totals.minutes} dk
+                </span>
+              </div>
               <ul className="space-y-3">
                 {rows.map((task) => (
                   <TaskCard key={task.id} task={task} />
@@ -203,8 +207,9 @@ export function ProgramBoard({
 }
 
 function TaskCard({ task }: { task: ProgramTask }) {
+  const solved = task.correct + task.wrong + task.blank;
   return (
-    <li className="rounded-2xl border border-white/10 bg-[#0a102c]/70 p-3">
+    <li className="rounded-2xl border border-white/10 bg-[#0a102c]/80 p-3">
       <div className="flex items-start gap-3">
         <form action={toggleTaskAction.bind(null, task.id)}>
           <button
@@ -216,19 +221,28 @@ function TaskCard({ task }: { task: ProgramTask }) {
           />
         </form>
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-medium ${task.done ? "text-muted line-through" : ""}`}>
-            {topicTitle(task.title)}
-          </p>
-          <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
-            <span className={`h-1.5 w-1.5 rounded-full ${subjectDot(task.subject)}`} />
-            {task.subject} ·{" "}
-            <ElapsedLabel
-              taskId={task.id}
-              elapsedSeconds={task.elapsedSeconds}
-              targetMinutes={task.minutes}
-            />
-          </p>
-          <TaskScoreForm task={task} />
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className={`text-sm font-medium leading-5 ${task.done ? "text-muted line-through" : ""}`}>
+                {topicTitle(task.title)}
+              </p>
+              <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
+                <span className={`h-1.5 w-1.5 rounded-full ${subjectDot(task.subject)}`} />
+                {task.subject}
+                {" · "}
+                <ElapsedLabel
+                  taskId={task.id}
+                  elapsedSeconds={task.elapsedSeconds}
+                  targetMinutes={task.minutes}
+                />
+              </p>
+            </div>
+            <p className="shrink-0 text-right">
+              <span className="block text-lg font-semibold leading-none tabular-nums">{solved}</span>
+              <span className="text-[10px] text-muted">/ {task.targetQuestions || 0} soru</span>
+            </p>
+          </div>
+          <TaskScoreForm task={task} showSolved={false} />
         </div>
       </div>
     </li>
