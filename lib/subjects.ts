@@ -37,3 +37,25 @@ const COLORS: Record<string, string> = {
 export function subjectDot(subject: string) {
   return COLORS[subject] ?? "bg-white/40";
 }
+
+const SHORT: Record<string, string> = {
+  Matematik: "MAT",
+  Geometri: "GEO",
+  Fizik: "FİZ",
+  Kimya: "KİM",
+  Biyoloji: "BİY",
+  Türkçe: "TÜR",
+  Edebiyat: "EDE",
+  Tarih: "TAR",
+  Coğrafya: "COĞ",
+  Felsefe: "FEL",
+  Din: "DİN",
+  İngilizce: "İNG",
+  "TYT Deneme": "TYT",
+  "AYT Deneme": "AYT",
+  "LGS Deneme": "LGS",
+};
+
+export function subjectShort(subject: string) {
+  return SHORT[subject] ?? subject.slice(0, 3).toLocaleUpperCase("tr");
+}

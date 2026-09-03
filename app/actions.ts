@@ -1,28 +1,16 @@
 "use server";
 
-import bcrypt from "bcryptjs";
-import { AuthError } from "next-auth";
 import { z } from "zod";
-import { auth, signIn, signOut } from "@/auth";
-import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
+import { getAppUser } from "@/lib/app-user";
+import { prisma } from "@/lib/prisma";
 import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS } from "@/lib/labels";
 import { welcomeMessage } from "@/lib/prompt";
 import { istanbulToday } from "@/lib/dates";
+import { defaultProgramStart, TYT_PROGRAM } from "@/lib/allstar-tyt";
+import { insertProgram } from "@/lib/ensure-program";
 import { normalizePlatform } from "@/lib/labels";
 import { redirect } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
-
-const registerSchema = z.object({
-  name: z.string().trim().min(2, "Ad en az 2 karakter olmalı.").max(80),
-  email: z.string().trim().email("Geçerli bir e-posta gir."),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalı.").max(100),
-});
-
-const loginSchema = z.object({
-  email: z.string().trim().email("Geçerli bir e-posta gir."),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalı."),
-});
 
 const profileSchema = z
   .object({
@@ -65,100 +53,20 @@ const taskSchema = z.object({
 
 export type ActionState = { error?: string } | undefined;
 
-async function credentialsSignIn(email: string, password: string, redirectTo: string) {
-  try {
-    await signIn("credentials", { email, password, redirectTo });
-  } catch (error) {
-    if (isRedirectError(error)) throw error;
-    if (error instanceof AuthError) {
-      if (error.type === "CredentialsSignin") {
-        return { error: "E-posta veya şifre hatalı." };
-      }
-      if (error.type === "MissingSecret") {
-        return { error: "Giriş şu an yapılamıyor. Lütfen biraz sonra tekrar dene." };
-      }
-      return { error: "Giriş yapılamadı. Lütfen tekrar dene." };
-    }
-    return { error: dbErrorMessage(error) };
-  }
-}
-
-export async function registerAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const parsed = registerSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Formu kontrol et." };
-  }
-
-  const email = parsed.data.email.toLowerCase();
-  try {
-    await ensureSchema();
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return { error: "Bu e-posta zaten kayıtlı. Giriş yapmayı dene." };
-    }
-
-    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    await prisma.user.create({
-      data: {
-        name: parsed.data.name,
-        email,
-        passwordHash,
-      },
-    });
-  } catch (error) {
-    return { error: dbErrorMessage(error) };
-  }
-
-  return credentialsSignIn(email, parsed.data.password, "/onboarding");
-}
-
-export async function loginAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Formu kontrol et." };
-  }
-
-  try {
-    await ensureSchema();
-  } catch (error) {
-    return { error: dbErrorMessage(error) };
-  }
-
-  return credentialsSignIn(
-    parsed.data.email.toLowerCase(),
-    parsed.data.password,
-    "/chat",
-  );
-}
-
-export async function signOutAction() {
-  await signOut({ redirectTo: "/" });
+function revalidateStudy() {
+  revalidatePath("/calendar");
+  revalidatePath("/chat");
+  revalidatePath("/program");
+  revalidatePath("/stats");
+  revalidatePath("/notes");
+  revalidatePath("/todos");
 }
 
 export async function saveProfileAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "Oturum gerekli." };
-  }
-
-  await ensureSchema();
-
+  const user = await getAppUser();
   const parsed = profileSchema.safeParse({
     displayName: formData.get("displayName"),
     examType: formData.get("examType"),
@@ -181,9 +89,9 @@ export async function saveProfileAction(
       : "";
 
   await prisma.profile.upsert({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     create: {
-      userId: session.user.id,
+      userId: user.id,
       displayName: parsed.data.displayName,
       examType: parsed.data.examType,
       grade: parsed.data.grade,
@@ -208,23 +116,17 @@ export async function saveProfileAction(
   });
 
   await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: user.id },
     data: { name: parsed.data.displayName },
   });
 
-  redirect("/chat");
+  redirect("/program");
 }
 
 export async function createConversationAction() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  await ensureSchema();
-
+  const user = await getAppUser();
   const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
   });
   if (!profile) {
     redirect("/onboarding");
@@ -232,18 +134,18 @@ export async function createConversationAction() {
 
   const today = istanbulToday();
   const todayTasks = await prisma.studyTask.findMany({
-    where: { userId: session.user.id, date: today },
+    where: { userId: user.id, date: today },
     orderBy: { createdAt: "asc" },
   });
 
   const conversation = await prisma.conversation.create({
     data: {
-      userId: session.user.id,
-      title: "Yeni sohbet",
+      userId: user.id,
+      title: "Koç",
       messages: {
         create: {
           role: "assistant",
-        content: welcomeMessage(profile, todayTasks),
+          content: welcomeMessage(profile, todayTasks),
         },
       },
     },
@@ -254,10 +156,9 @@ export async function createConversationAction() {
 }
 
 export async function deleteConversationAction(conversationId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return;
+  const user = await getAppUser();
   await prisma.conversation.deleteMany({
-    where: { id: conversationId, userId: session.user.id },
+    where: { id: conversationId, userId: user.id },
   });
   revalidatePath("/chat");
   revalidatePath("/calendar");
@@ -265,9 +166,7 @@ export async function deleteConversationAction(conversationId: string) {
 }
 
 export async function createTaskAction(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id) return;
-
+  const user = await getAppUser();
   const parsed = taskSchema.safeParse({
     date: formData.get("date"),
     title: formData.get("title"),
@@ -278,35 +177,31 @@ export async function createTaskAction(formData: FormData): Promise<void> {
 
   await prisma.studyTask.create({
     data: {
-      userId: session.user.id,
+      userId: user.id,
       date: parsed.data.date,
       title: parsed.data.title,
       subject: parsed.data.subject ?? "",
       minutes: parsed.data.minutes,
     },
   });
-  revalidatePath("/calendar");
-  revalidatePath("/chat");
+  revalidateStudy();
 }
 
 export async function toggleTaskAction(taskId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return;
+  const user = await getAppUser();
   const task = await prisma.studyTask.findFirst({
-    where: { id: taskId, userId: session.user.id },
+    where: { id: taskId, userId: user.id },
   });
   if (!task) return;
   await prisma.studyTask.update({
     where: { id: task.id },
     data: { done: !task.done },
   });
-  revalidatePath("/calendar");
-  revalidatePath("/chat");
+  revalidateStudy();
 }
 
 export async function updateTaskAction(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id) return;
+  const user = await getAppUser();
   const id = String(formData.get("id") ?? "");
   const parsed = taskSchema.safeParse({
     date: formData.get("date"),
@@ -317,7 +212,7 @@ export async function updateTaskAction(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   const task = await prisma.studyTask.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: user.id },
   });
   if (!task) return;
 
@@ -330,16 +225,169 @@ export async function updateTaskAction(formData: FormData): Promise<void> {
       minutes: parsed.data.minutes,
     },
   });
-  revalidatePath("/calendar");
-  revalidatePath("/chat");
+  revalidateStudy();
 }
 
 export async function deleteTaskAction(taskId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return;
+  const user = await getAppUser();
   await prisma.studyTask.deleteMany({
-    where: { id: taskId, userId: session.user.id },
+    where: { id: taskId, userId: user.id },
   });
-  revalidatePath("/calendar");
-  revalidatePath("/chat");
+  revalidateStudy();
+}
+
+export async function saveElapsedAction(taskId: string, elapsedSeconds: number, refresh = false): Promise<void> {
+  const user = await getAppUser();
+  const seconds = Math.max(0, Math.floor(elapsedSeconds));
+  if (!taskId || seconds > 60 * 60 * 16) return;
+  const task = await prisma.studyTask.findFirst({
+    where: { id: taskId, userId: user.id },
+  });
+  if (!task) return;
+  await prisma.studyTask.update({
+    where: { id: task.id },
+    data: { elapsedSeconds: seconds },
+  });
+  if (refresh) revalidateStudy();
+}
+
+const scoreSchema = z.object({
+  id: z.string().min(1),
+  correct: z.coerce.number().int().min(0).max(200),
+  wrong: z.coerce.number().int().min(0).max(200),
+  blank: z.coerce.number().int().min(0).max(200),
+  note: z.string().trim().max(300).optional(),
+});
+
+export async function logTaskResultAction(formData: FormData): Promise<void> {
+  const user = await getAppUser();
+  const parsed = scoreSchema.safeParse({
+    id: formData.get("id"),
+    correct: formData.get("correct") || 0,
+    wrong: formData.get("wrong") || 0,
+    blank: formData.get("blank") || 0,
+    note: formData.get("note") || undefined,
+  });
+  if (!parsed.success) return;
+
+  const task = await prisma.studyTask.findFirst({
+    where: { id: parsed.data.id, userId: user.id },
+  });
+  if (!task) return;
+
+  const scored = parsed.data.correct + parsed.data.wrong + parsed.data.blank > 0;
+  await prisma.studyTask.update({
+    where: { id: task.id },
+    data: {
+      correct: parsed.data.correct,
+      wrong: parsed.data.wrong,
+      blank: parsed.data.blank,
+      note: parsed.data.note ?? task.note,
+      done: scored ? true : task.done,
+    },
+  });
+  revalidateStudy();
+}
+
+export async function seedAllStarProgramAction(formData: FormData): Promise<void> {
+  const user = await getAppUser();
+  const raw =
+    String(formData.get("startDate") ?? "").slice(0, 10) || defaultProgramStart();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
+
+  const existing = await prisma.studyTask.count({
+    where: { userId: user.id, source: TYT_PROGRAM.source },
+  });
+  if (existing > 0) {
+    redirect("/program");
+  }
+
+  await insertProgram(user.id, raw);
+
+  await prisma.profile.updateMany({
+    where: { userId: user.id },
+    data: {
+      examType: "YKS",
+      platform: "kaynak345",
+      platformNote: "345 All Star TYT konu + veri bankası",
+      dailyHours: 4,
+    },
+  });
+
+  revalidateStudy();
+  redirect("/program");
+}
+
+export async function resetAllStarProgramAction(): Promise<void> {
+  const user = await getAppUser();
+  await prisma.studyTask.deleteMany({
+    where: { userId: user.id, source: TYT_PROGRAM.source },
+  });
+  revalidateStudy();
+  redirect("/program");
+}
+
+const STICKY_COLORS = ["yellow", "pink", "mint", "blue", "lavender"] as const;
+
+export async function createStickyNoteAction(formData: FormData): Promise<void> {
+  const user = await getAppUser();
+  const body = String(formData.get("body") ?? "").trim().slice(0, 400);
+  const colorRaw = String(formData.get("color") ?? "yellow");
+  const color = STICKY_COLORS.includes(colorRaw as (typeof STICKY_COLORS)[number]) ? colorRaw : "yellow";
+  if (!body) return;
+  await prisma.stickyNote.create({
+    data: { userId: user.id, body, color },
+  });
+  revalidatePath("/notes");
+}
+
+export async function updateStickyNoteAction(formData: FormData): Promise<void> {
+  const user = await getAppUser();
+  const id = String(formData.get("id") ?? "");
+  const body = String(formData.get("body") ?? "").trim().slice(0, 400);
+  if (!id || !body) return;
+  await prisma.stickyNote.updateMany({
+    where: { id, userId: user.id },
+    data: { body },
+  });
+  revalidatePath("/notes");
+}
+
+export async function deleteStickyNoteAction(noteId: string): Promise<void> {
+  const user = await getAppUser();
+  await prisma.stickyNote.deleteMany({
+    where: { id: noteId, userId: user.id },
+  });
+  revalidatePath("/notes");
+}
+
+export async function createTodoAction(formData: FormData): Promise<void> {
+  const user = await getAppUser();
+  const title = String(formData.get("title") ?? "").trim().slice(0, 140);
+  if (!title) return;
+  await prisma.todoItem.create({
+    data: { userId: user.id, title },
+  });
+  revalidatePath("/todos");
+}
+
+export async function toggleTodoAction(todoId: string): Promise<void> {
+  const user = await getAppUser();
+  const todo = await prisma.todoItem.findFirst({
+    where: { id: todoId, userId: user.id },
+  });
+  if (!todo) return;
+  await prisma.todoItem.update({
+    where: { id: todo.id },
+    data: { done: !todo.done },
+  });
+  revalidatePath("/todos");
+}
+
+export async function deleteTodoAction(todoId: string): Promise<void> {
+  const user = await getAppUser();
+  await prisma.todoItem.deleteMany({
+    where: { id: todoId, userId: user.id },
+  });
+  revalidatePath("/todos");
 }

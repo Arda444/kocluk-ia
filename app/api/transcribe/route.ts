@@ -1,12 +1,9 @@
 import Groq from "groq-sdk";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/app-user";
 import { getGroqApiKey, groqMissingMessage } from "@/lib/groq-env";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Giriş gerekli." }, { status: 401 });
-  }
+  await getAppUser();
   const groqKey = getGroqApiKey();
   if (!groqKey) {
     return Response.json({ error: groqMissingMessage() }, { status: 503 });

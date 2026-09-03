@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { saveProfileAction, type ActionState } from "@/app/actions";
 import { EXAM_TYPES, GRADES, PLATFORMS, TRACKS, normalizePlatform } from "@/lib/labels";
+import { STUDENT_NAME } from "@/lib/student";
 
 type ProfileSeed = {
   displayName: string;
@@ -39,7 +40,7 @@ export function OnboardingWizard({
   const [examType, setExamType] = useState(initial?.examType ?? "YKS");
   const [platform, setPlatform] = useState(normalizePlatform(initial?.platform ?? "youtube"));
   const [values, setValues] = useState({
-    displayName: initial?.displayName || defaultName,
+    displayName: initial?.displayName || defaultName || STUDENT_NAME,
     examType: initial?.examType ?? "YKS",
     grade: initial?.grade ?? "12",
     track: initial?.track ?? "sayisal",
@@ -84,7 +85,7 @@ export function OnboardingWizard({
   return (
     <div className="mx-auto w-full max-w-lg px-5 py-10">
       {initial ? (
-        <a href="/chat" className="text-xs text-accent">
+        <a href="/program" className="text-xs text-accent">
           ← Panele dön
         </a>
       ) : null}
@@ -114,7 +115,7 @@ export function OnboardingWizard({
           <input
             value={values.displayName}
             onChange={(event) => setField("displayName", event.target.value)}
-            placeholder="Adın"
+            placeholder={STUDENT_NAME}
             className="h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base outline-none ring-accent/40 focus:ring-2"
           />
         ) : null}
@@ -270,7 +271,7 @@ export function OnboardingWizard({
             <button
               type="submit"
               disabled={pending}
-              className="h-12 w-full rounded-2xl bg-accent font-semibold text-black disabled:opacity-60"
+              className="h-12 w-full rounded-2xl bg-accent font-semibold text-white disabled:opacity-60"
             >
               {pending ? "Kaydediliyor…" : "Koça bağlan"}
             </button>
@@ -279,7 +280,7 @@ export function OnboardingWizard({
           <button
             type="button"
             onClick={next}
-            className="h-12 flex-1 rounded-2xl bg-accent font-semibold text-black"
+            className="h-12 flex-1 rounded-2xl bg-accent font-semibold text-white"
           >
             {current.id === "target" && !values.target.trim() ? "Atla" : "İleri"}
           </button>

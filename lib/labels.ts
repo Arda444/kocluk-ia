@@ -90,12 +90,12 @@ export const PLATFORM_PLAYBOOK: Record<string, string> = {
 - Uygulamadaki ödev/deneme/kamp kutularını günlük göreve çevir: bugün X videosu + Y soru.
 - Takıldığın videoyu 2 kez izle, 3.de hoca/forum değil soru bankasına geç.
 - Kamp dönemlerinde Doping kamp PDF/akışına sadık kal, ekstra kaynak ekleme.`,
-  kaynak345: `345 ve All Star tek kaynak seti. Yönlendirme kuralları:
-- 345 soru bankası + All Star deneme/ünite aynı programın parçası; aralarında kaynak değiştirme yarışı yok.
-- Sıra: kısa tarama → 345/All Star ilgili ünite soruları → yanlış defteri → All Star veya 345 deneme.
-- Günde net soru hedefi (ör. 40-60). Video çözümü yalnız yanlış/boşta aç.
-- Branş denemesi haftalık; TYT genel deneme ayrı gün.
-- Aynı üniteyi üçüncü bir bankayla şişirme.`,
+  kaynak345: `345 All Star tek kaynak. Öğrenci 18 haftalık sıfırdan TYT programında:
+- Her gün 4 blok (mat/geo, Türkçe, fen, sosyal), 4 saat, Pzt–Cmt.
+- Sıra: All Star konu anlatımı (temel) → veri bankası soruları → yanlış defteri.
+- Günün hedef soru sayısı tabloda yazılı. Video çözüm yalnız yanlış/boşta.
+- Branş denemesi son haftalara kadar her gün yok; hafta 16–18 Cumartesi tam TYT deneme.
+- Üçüncü yayınevi açma.`,
   raunt: `Raunt kullanıyor. Yönlendirme kuralları:
 - Raunt canlı ders + ödev + deneme takvimini "asıl okul" say. Çakışan ekstra kaynak ekleme.
 - Canlı derse 5 dk kala hazır ol, ders sonrası aynı gün Raunt ödevini bitir.

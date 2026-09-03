@@ -223,7 +223,7 @@ export function ChatWindow({
               key={message.id}
               className={
                 message.role === "user"
-                  ? "ml-auto max-w-2xl rounded-2xl bg-accent px-4 py-3 text-black"
+                  ? "ml-auto max-w-2xl rounded-2xl bg-accent px-4 py-3 text-white"
                   : "mr-auto w-full max-w-4xl rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[0_0_0_1px_rgba(124,255,178,0.06)] md:px-5"
               }
             >
@@ -265,7 +265,7 @@ export function ChatWindow({
               else stopSpeaking();
             }}
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
-              voiceOn ? "bg-accent text-black" : "border border-white/15 text-muted"
+              voiceOn ? "bg-accent text-white" : "border border-white/15 text-muted"
             }`}
             aria-label={voiceOn ? "Sesli yanıt açık" : "Sesli yanıt kapalı"}
             aria-pressed={voiceOn}
@@ -276,7 +276,7 @@ export function ChatWindow({
             type="button"
             onClick={() => void toggleListen()}
             className={`relative h-12 w-12 shrink-0 rounded-full ${
-              listening ? "bg-coral text-black" : "border border-white/15 text-muted"
+              listening ? "bg-wrong text-white" : "border border-white/15 text-muted"
             }`}
             aria-label="Sesli konuş"
           >

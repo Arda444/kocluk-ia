@@ -6,26 +6,19 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-
   return (
     <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
-      <p className="text-xs font-semibold tracking-[0.2em] text-accent">Sınav Koçu</p>
+      <p className="text-xs font-semibold tracking-[0.2em] text-accent">ALL STAR TYT</p>
       <h1 className="mt-4 font-serif text-4xl">Sayfa yüklenemedi</h1>
-      <p className="mt-3 text-muted">Bir şey ters gitti. Sayfayı yenile veya yeniden giriş yap.</p>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+      <p className="mt-3 text-muted">Bir şey ters gitti. Sayfayı yenile.</p>
+      <div className="mt-8">
         <button
           type="button"
           onClick={() => reset()}
-          className="inline-flex h-12 items-center justify-center rounded-full bg-accent px-7 text-sm font-semibold text-black"
+          className="inline-flex h-12 items-center justify-center rounded-full bg-accent px-7 text-sm font-semibold text-white"
         >
           Yenile
         </button>
-        <a
-          href="/logout"
-          className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-7 text-sm"
-        >
-          Çıkış yap
-        </a>
       </div>
     </main>
   );

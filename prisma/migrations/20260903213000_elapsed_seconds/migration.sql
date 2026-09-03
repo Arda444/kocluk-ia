@@ -1,0 +1,1 @@
+ALTER TABLE "StudyTask" ADD COLUMN "elapsedSeconds" INTEGER NOT NULL DEFAULT 0;

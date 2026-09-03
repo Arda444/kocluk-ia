@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "StudyTask" ADD COLUMN "topicKey" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "StudyTask" ADD COLUMN "weekNumber" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "StudyTask" ADD COLUMN "targetQuestions" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "StudyTask" ADD COLUMN "correct" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "StudyTask" ADD COLUMN "wrong" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "StudyTask" ADD COLUMN "blank" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "StudyTask" ADD COLUMN "note" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "StudyTask" ADD COLUMN "source" TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS "StudyTask_userId_date_idx" ON "StudyTask"("userId", "date");
+CREATE INDEX IF NOT EXISTS "StudyTask_userId_source_idx" ON "StudyTask"("userId", "source");

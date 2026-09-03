@@ -16,6 +16,8 @@ model User {
   profile       Profile?
   conversations Conversation[]
   studyTasks    StudyTask[]
+  stickyNotes   StickyNote[]
+  todoItems     TodoItem[]
 }
 
 model Profile {
@@ -55,13 +57,47 @@ model Message {
 }
 
 model StudyTask {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            String
+  title           String
+  subject         String   @default("")
+  minutes         Int      @default(40)
+  done            Boolean  @default(false)
+  topicKey        String   @default("")
+  weekNumber      Int      @default(0)
+  targetQuestions Int      @default(0)
+  correct         Int      @default(0)
+  wrong           Int      @default(0)
+  blank           Int      @default(0)
+  note            String   @default("")
+  source          String   @default("")
+  elapsedSeconds  Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([userId, source])
+}
+
+model StickyNote {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date      String
+  body      String
+  color     String   @default("yellow")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model TodoItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
-  subject   String   @default("")
-  minutes   Int      @default(40)
   done      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }

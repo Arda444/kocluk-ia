@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
+import { AppFrame } from "@/components/AppFrame";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -13,8 +14,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Sınav Koçu",
-  description: "LGS ve YKS için sesli çalışma koçu — plan, takvim, senin kaynağın.",
+  title: "All Star TYT",
+  description: "345 All Star TYT paneli — tablo, istatistik, koç ve takvim.",
   appleWebApp: {
     capable: true,
     title: "Sınav Koçu",
@@ -31,7 +32,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}>
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <AppFrame>{children}</AppFrame>
+      </body>
     </html>
   );
 }

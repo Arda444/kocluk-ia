@@ -1,9 +1,10 @@
 import Groq from "groq-sdk";
-import { auth } from "@/auth";
-import { dbErrorMessage, ensureSchema, prisma } from "@/lib/prisma";
+import { getAppUser } from "@/lib/app-user";
+import { dbErrorMessage, prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "@/lib/prompt";
-import { extractPlanItems } from "@/lib/plan";
-import { istanbulToday } from "@/lib/dates";
+import { stripPlanBlocks } from "@/lib/plan";
+import { istanbulToday, weekRange } from "@/lib/dates";
+import { TYT_PROGRAM, programWeekOf } from "@/lib/allstar-tyt";
 import {
   getGroqApiKey,
   groqErrorMessage,
@@ -61,16 +62,7 @@ async function openChatStream(groq: Groq, messages: ChatTurn[]) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Giriş gerekli." }, { status: 401 });
-  }
-
-  try {
-    await ensureSchema();
-  } catch (error) {
-    return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
-  }
+  const user = await getAppUser();
 
   const groqKey = getGroqApiKey();
   if (!groqKey) {
@@ -90,9 +82,12 @@ export async function POST(request: Request) {
   let conversation;
   let profile;
   let todayTasks;
+  let weekTasks;
+  let programLoaded = false;
+  let programStart = "";
   try {
     conversation = await prisma.conversation.findFirst({
-      where: { id: conversationId, userId: session.user.id },
+      where: { id: conversationId, userId: user.id },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
     if (!conversation) {
@@ -103,16 +98,37 @@ export async function POST(request: Request) {
     }
 
     profile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
     });
     if (!profile) {
       return Response.json({ error: "Önce tanışma formunu doldur." }, { status: 400 });
     }
 
-    todayTasks = await prisma.studyTask.findMany({
-      where: { userId: session.user.id, date: istanbulToday() },
-      orderBy: { createdAt: "asc" },
-    });
+    const today = istanbulToday();
+    const range = weekRange(today);
+    const [todayRows, weekRows, firstProgram] = await Promise.all([
+      prisma.studyTask.findMany({
+        where: { userId: user.id, date: today },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.studyTask.findMany({
+        where: {
+          userId: user.id,
+          source: TYT_PROGRAM.source,
+          date: { gte: range.start, lte: range.end },
+        },
+        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      }),
+      prisma.studyTask.findFirst({
+        where: { userId: user.id, source: TYT_PROGRAM.source },
+        orderBy: { date: "asc" },
+        select: { date: true },
+      }),
+    ]);
+    todayTasks = todayRows;
+    weekTasks = weekRows;
+    programLoaded = Boolean(firstProgram);
+    programStart = firstProgram?.date ?? "";
   } catch (error) {
     return Response.json({ error: dbErrorMessage(error) }, { status: 503 });
   }
@@ -133,7 +149,12 @@ export async function POST(request: Request) {
 
   const groq = new Groq({ apiKey: groqKey });
   const messages: ChatTurn[] = [
-    { role: "system", content: buildSystemPrompt(profile, todayTasks, istanbulToday()) },
+    { role: "system", content: buildSystemPrompt(profile, todayTasks, istanbulToday(), {
+      loaded: programLoaded,
+      week: programLoaded ? programWeekOf(programStart, istanbulToday()) : 0,
+      totalWeeks: TYT_PROGRAM.weeks,
+      weekTasks: weekTasks ?? [],
+    }) },
     ...history,
     { role: "user", content },
   ];
@@ -179,25 +200,11 @@ export async function POST(request: Request) {
           }
         }
         if (full.trim()) {
-          const { clean, items } = extractPlanItems(full, istanbulToday());
-          if (items.length) {
-            await prisma.studyTask.createMany({
-              data: items.map((item) => ({
-                userId: session.user.id,
-                date: item.date,
-                title: item.title,
-                subject: item.subject ?? "",
-                minutes: item.minutes ?? 40,
-              })),
-            });
-          }
           await prisma.message.create({
             data: {
               conversationId,
               role: "assistant",
-              content: items.length
-                ? `${clean}\n\n${items.length} görev takvime eklendi.`
-                : clean || full,
+              content: stripPlanBlocks(full) || full,
             },
           });
           await prisma.conversation.update({

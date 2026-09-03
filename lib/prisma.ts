@@ -3,7 +3,7 @@ import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { BUNDLED_MIGRATIONS } from "@/lib/schema-sql";
+import { BUNDLED_MIGRATIONS, EXTRA_TABLES, STUDY_TASK_ALTERS } from "@/lib/schema-sql";
 import { tursoConfig } from "@/lib/env-value";
 
 const globalForPrisma = globalThis as unknown as {
@@ -77,6 +77,32 @@ async function applyMigrations() {
   }
 }
 
+async function ensureStudyTaskColumns() {
+  for (const statement of STUDY_TASK_ALTERS) {
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!/already exists|duplicate|duplicate column/i.test(message)) {
+        throw error;
+      }
+    }
+  }
+}
+
+async function ensureExtraTables() {
+  for (const statement of EXTRA_TABLES) {
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!/already exists|duplicate|duplicate column/i.test(message)) {
+        throw error;
+      }
+    }
+  }
+}
+
 export async function ensureSchema() {
   if (!globalForPrisma.schemaReady) {
     globalForPrisma.schemaReady = (async () => {
@@ -88,6 +114,8 @@ export async function ensureSchema() {
     })();
   }
   await globalForPrisma.schemaReady;
+  await ensureStudyTaskColumns();
+  await ensureExtraTables();
 }
 
 export function dbErrorMessage(_error: unknown) {

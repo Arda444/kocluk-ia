@@ -73,3 +73,14 @@ export function parseISODate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
+
+export function addDays(iso: string, days: number) {
+  const date = new Date(`${iso}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
+}
+
+export function weekdayIndex(iso: string) {
+  const date = new Date(`${iso}T12:00:00`);
+  return date.getDay() === 0 ? 6 : date.getDay() - 1;
+}
